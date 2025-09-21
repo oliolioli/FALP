@@ -10,4 +10,6 @@ mix deps.get --only prod
 ```
 
 ## ... & run the Livebook server
+```
 MIX_ENV=prod mix phx.server
+```
