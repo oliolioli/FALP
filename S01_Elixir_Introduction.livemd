@@ -1,0 +1,197 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# S01 - Elixir (Introduction)
+
+## Info étudiant
+
+* étudiant : Olivier Meier
+
+## Instructions
+
+* Date butoir : Jeudi prochain à 05h00
+* Travail à rendre : une copie de votre livebook pour la série au format `.livemd`
+* N'oubliez pas de mettre votre nom au début du fichier
+
+## 1. Tutoriel Elixir
+
+Lisez le tutoriel Elixir trouvable à [cette adresse](https://hexdocs.pm/elixir/introduction.html).
+
+## 2. Déclaration de fonctions
+
+Programmez en Elixir les fonctions suivantes :
+
+1. Une fonction `sum` qui calcule la somme de quatre (4) entiers passés en paramètres.
+2. Une fonction `max3` qui calcule le maximum entre trois (3) entiers passés en paramètres.
+   Proposez cinq (5) versions de cette fonction, donc au moins une qui utilise `if`, au moins une
+   qui utilise `cond` avec éventuellement des gardes, et au moins une qui utilise `with`. Vous
+   avez la possibilité d'utiliser ou non la fonction prédéfinie [`max/2`](https://hexdocs.pm/elixir/Kernel.html#max/2).
+3. Une fonction `sign` qui prend un nombre en paramètre, et retourne `"Ce nombre est positif."`
+   si le nombre est positif, `"Ce nombre est négatif."` s'il est négatif, et "Ce nombre est nul."
+   s'il est égal à zéro. Proposez deux (2) versions, une utilisant `if`, et une utilisant case
+   avec éventuellement des gardes.
+
+```elixir
+defmodule Solutions do
+  
+  def sum(n1, n2, n3, n4) do
+    n1+n2+n3+n4
+  end
+
+  # Solution with if statements
+  def max3_if(n1, n2, n3) do
+    if n1 > n2 && n1 > n3 do IO.puts("Max (if) = #{n1}") end
+    if n2 > n1 && n2 > n3 do IO.puts("Max (if) = #{n2}") end
+    if n3 > n1 && n3 > n2 do IO.puts("Max (if) = #{n3}") end
+  end
+
+  
+  # Solution with cond statements
+  def max3_cond(n1, n2, n3) do
+    cond do
+      n1 > n2 and n1 > n3 -> IO.puts("Max (cond) = #{n1}")
+      n2 > n1 and n2 > n3 -> IO.puts("Max (cond) = #{n2}")
+      n3 > n1 and n3 > n2 -> IO.puts("Max (cond) = #{n3}")
+    end
+  end
+
+  
+  # This solution using with statements above is heavily inspired from a
+  # ChatGPT suggestion as I didn't find a neat solution by myself. 
+  def max3_with(n1, n2, n3) do
+    with {:max, val} <- (if n1 >= n2 and n1 >= n3, do: {:max, n1},
+                          else: if n2 >= n1 and n2 >= n3, do: {:max, n2},
+                          else: {:max, n3}) do
+      {"Max (with) = ", val}
+    end
+  end
+
+  
+  # Using max/2 for a kind of binary search
+  def max3_using_kernel_max2(n1, n2, n3) do
+    IO.puts("Max value using binary search = #{max(max(n1, n2), max(n2, n3))}")
+  end
+
+  
+  # Some sort of recursive sorting algorithm with swapping
+  def max3_using_if(n1, n2, n3) do
+    with :ok <- (if n1 < n2, do: :ok, else: :swap1),
+         :ok <- (if n2 < n3, do: :ok, else: :swap2) do
+      IO.puts("Numbers are now in increased order. Max n3 = #{n3}")
+    else
+      :swap1 -> max3_using_if(n2, n1, n3)
+      :swap2 -> max3_using_if(n1, n3, n2)
+    end
+  end
+
+  # Sign-Function (inspiration taken from 
+  # https://dev.to/abreujp/learning-elixir-control-flow-with-guards-nkf)
+  def sign_guard(0), do: IO.puts("Ce nombre est nul.")
+  def sign_guard(n) when n > 0, do: IO.puts("Ce nombre est positif.")
+  def sign_guard(n) when n < 0, do: IO.puts("Ce nombre est négative.")
+
+  # Sign-Function with ifs
+  def sign_if(number) do
+    if number == 0 do IO.puts("Ce nombre est nul.") else
+      if number > 0 do IO.puts("Ce nombre est positif.") else
+        IO.puts("Ce nombre est négative.") end      
+    end
+  end
+    
+end
+
+
+
+Solutions.sum(1,2,3,4)
+
+Solutions.max3_if(8,9,7)
+Solutions.max3_if(3,2,1)
+Solutions.max3_if(4,5,6)
+
+Solutions.max3_cond(1,2,3)
+Solutions.max3_cond(3,1,2)
+Solutions.max3_cond(2,3,2)
+
+Solutions.max3_with(40,1,30)
+Solutions.max3_using_kernel_max2(872, 72, 943)
+
+Solutions.max3_using_if(1,2293,300)
+
+Solutions.sign_guard(3.14159)
+
+Solutions.sign_if(0)
+Solutions.sign_if(42)
+Solutions.sign_if(-42)
+
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+warning: missing parentheses for expression following "else:" keyword. Parentheses are required to solve ambiguity inside keywords.
+
+This error happens when you have function calls without parentheses inside keywords. For example:
+
+    function(arg, one: nested_call a, b, c)
+    function(arg, one: if expr, do: :this, else: :that)
+
+In the examples above, we don't know if the arguments "b" and "c" apply to the function "function" or "nested_call". Or if the keywords "do" and "else" apply to the function "function" or "if". You can solve this by explicitly adding parentheses:
+
+    function(arg, one: if(expr, do: :this, else: :that))
+    function(arg, one: nested_call(a, b, c))
+
+Ambiguity found at:
+└─ /home/oli/Documents/uni/FALP/S01_Elixir_Introduction.livemd#cell:v5j6m4yuvv4mc5g2:29
+
+Max (if) = 9
+Max (if) = 3
+Max (if) = 6
+Max (cond) = 3
+Max (cond) = 3
+Max (cond) = 3
+Max value using binary search = 943
+Numbers are now in increased order. Max n3 = 2293
+Ce nombre est positif.
+Ce nombre est nul.
+Ce nombre est positif.
+Ce nombre est négative.
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+Voici un exemple de fonction déjà résolue. Pouvez-vous dire ce qu'elle fait ?
+
+```elixir
+defmodule Mystery do
+  def mystery(input1, input2, input3, input4) do
+    what1 = input1 + input2
+    what2 = input3 + input4
+
+    what1 * what2
+  end
+end
+
+result = Mystery.mystery(1, 2, 3, 4)
+IO.puts(result)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+21
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+### Réponse
+
+Cette function justement fait deux fois additions et apres une multiplication et l'imprime sur IO:
+
+Output = (input1 + input2) * (input3 + input4)
