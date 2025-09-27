@@ -1,0 +1,376 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# S02 - Listes et Récursivité
+
+## Info étudiant
+
+* étudiant : *Olivier Meier*
+
+## Instructions
+
+* Date butoir : Jeudi prochain à 05h00
+* Travail à rendre : une copie de votre livebook pour la série au format `.livemd`
+* N'oubliez pas de mettre votre nom au début du fichier
+
+## Exercice 1 : Listes
+
+Développez les fonctions suivantes.
+
+* `f(l)` : retourne les trois premiers éléments de la liste `l`. La liste est entièrement retournée
+  en résultat si elle contient moins de trois éléments. Créer 2 versions de cette fonction :
+  une version avec motif et une version sans motif.
+  * Exemple : `f([4,8,2,7,9,3])` retourne `[4,8,2]`.
+* `fibonacci(n)` : retourne le `n`-ième nombre de Fibonacci. On définit ici la suite de Fibonacci
+  de la manière ci-dessous.
+
+$$
+\begin{align*}
+  fib(0)& = 0\\
+  fib(1)& = 1\\
+  fib(n)& = fib(n-1) + fib(n-2), \quad \text{pour} \enspace n \ge 2
+\end{align*}
+$$
+
+```elixir
+require Logger
+
+defmodule Exercise1 do
+  # Basic f(l)
+  def f([first, second, third | _]) do
+    IO.puts("First: #{first}, Second: #{second}, Third: #{third}")
+  end
+
+  def f([first, second]) do
+    IO.puts("First: #{first}, Second: #{second}")
+  end
+
+  def f([first]) do
+    IO.puts("First: #{first}")
+  end
+
+  def f([]) do
+    Logger.info("List is empty or reached end.")
+  end
+
+  # Recursive f(l)
+  def f_rec([], _) do
+    Logger.info("List is empty or reached end.")
+  end
+
+  def f_rec(_, iterator) when iterator > 2 do
+    Logger.info("List reached end.")
+  end
+  
+  def f_rec(list, iterator) do
+    IO.puts("Element ##{iterator+1}: #{List.first(list)}")
+    f_rec(tl(list), iterator+1)
+  end
+
+  # Fibonacci
+  def fibonacci(0) do
+    0
+  end
+
+  def fibonacci(1) do
+    1
+  end
+  
+  def fibonacci(n) do
+    fibonacci(n-1) + fibonacci(n-2)
+  end
+end
+
+
+l = [1,2,3,4,5,6,7]
+#l = [1,2]
+#l = []
+
+
+# Version of f(l) with pattern recognition
+Exercise1.f(l)
+
+# Version of f(l) without pattern recognition
+Exercise1.f_rec(l, 0)
+
+# Fibonacci
+IO.inspect(Exercise1.fibonacci(7))
+
+# Check the first thirteen Fibonacci numbers
+for i <- 1..13 do
+  Exercise1.fibonacci(i)
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+First: 1, Second: 2, Third: 3
+Element #1: 1
+Element #2: 2
+Element #3: 3
+
+12:09:09.963 [info] List reached end.
+13
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233]
+```
+
+## Exercice 2 : Listes et Récursion
+
+Développez les fonctions récursives sur les listes qui suivent (sans utiliser les fonctions
+prédéfinies équivalentes).
+
+* `my_last(l)` : retourne le dernier élément de la liste `l`. La liste ne doit pas être vide.
+  * Exemple : `my_last([4,8,2])` retourne `2`.
+* `my_delete(l, e)` : retourne la liste `l` sans sa première occurrence de `e`.
+  * Exemple : `my_delete([1,5,7,5,8], 5)` retourne `[1,7,5,8]`.
+* `my_maximum(l)` : retourne le plus grand élément de la liste `l`.
+  * Exemple : `my_maximum([1,5,7,5])` retourne `7`.
+* `my_length(l)` : retourne la longueur de la liste `l` (son nombre d'éléments).
+  * Exemple : `my_length([1,5,7])` retourne `3`.
+* `my_delete_all(l, e)` : retourne la liste `l` sans toutes ses occurrences de `e`.
+  * Exemple : `my_delete_all([1,5,7,5,8], 5)` retourne `[1,7,8]`.
+
+```elixir
+require Logger
+  
+defmodule Exercise2 do
+
+  # my_last(l)
+  def my_last(l) when length(l) == 1 do
+    IO.puts("Last Number: #{Enum.join(l)}")
+  end
+  
+  def my_last(l) when length(l) > 0 do
+      my_last(tl(l))
+  end
+
+  # my_delete(l, e)
+  def my_delete(l, e) do
+    if Enum.member?(l, e) do
+      pos = Enum.find_index(l, fn item -> item == e end)
+      Logger.info("Orig. list = #{Enum.join(l)} contains element '#{e}' at position '#{pos}'.")
+      Logger.info("New list = #{Enum.join(List.delete(l, pos))}")
+    else
+      Logger.info("List doesn't contains element '#{e}'.")
+    end
+  end
+
+  # my_maximum(l)
+  def my_maximum([]), do: Logger.info("Empty list.")     # base case empty list
+  def my_maximum(l), do: my_maximum(l, 0)                # main entry point
+  def my_maximum([], tmp_max), do: IO.puts("Max number = #{tmp_max}")
+  
+  def my_maximum(l, tmp_max) do                          # compare list items with temp max
+    my_maximum(tl(l), max(tmp_max, hd(l)))
+  end
+
+  # my_length
+  def my_length([]), do: Logger.info("Empty list.")      # base case empty list
+  def my_length(l), do: my_length(l, 0)                  # main entry point
+  #def my_length([], length), do: IO.puts("Length of list = #{length}")
+  def my_length([], length), do: IO.inspect(length)
+  
+  def my_length(l, length) do
+    my_length(tl(l), length+1)
+  end
+
+  # my_delete_all
+  def my_delete_all([]), do: Logger.info("Empty list.")      # base case empty list
+  def my_delete_all(l, e), do: my_delete_all(l, e, 0, [])    # main entry point
+  def my_delete_all([], _, _, resulting_list), do: IO.puts("Resulting list: #{Enum.join(resulting_list)}")
+
+  def my_delete_all(l, e, pos, resulting_list) do
+    #Logger.info("Resulting list = #{Enum.join(resulting_list)}")
+    #Logger.info(hd(l) = e))
+    if hd(l) == e do
+      #Logger.info("Found '#{hd(l)}' at position #{pos}.")
+      my_delete_all(tl(l), e, pos+2, resulting_list)
+    else
+      my_delete_all(tl(l), e, pos+1, resulting_list ++ [hd(l)])
+    end
+  end
+end
+
+#list = [1,2,3,4,5,6]
+list = [4,6,1,4,2,3,10,2,3,1]
+#list = []
+
+Exercise2.my_last(list)
+
+Exercise2.my_delete(list, 5)
+
+Exercise2.my_maximum(list)
+
+Exercise2.my_length(list)
+
+Exercise2.my_delete_all(list, 2) # '2' are to be found at pos 4, 7
+
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Last Number: 1
+
+14:31:35.604 [info] List doesn't contains element '5'.
+Max number = 10
+10
+Resulting list: 461431031
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+## Exercice 3 : Récursivité
+
+Développez les fonctions suivantes de manière récursive.
+
+* `scalar_product(l1, l2)` : retourne le produit scalaire des listes `l1` et `l2`.
+  * Rappel : le produit scalaire des listes `[v1,v2,v3]` et `[u1,u2,u3]` est égal à
+    _`v1*u1 + v2*u2 + v3*u3`_.
+  * Note : si les deux listes ne sont pas de la même taille on ignore les éléments restant de
+    la liste la plus grande.
+  * Exemple: `scalar_product([1,5,7], [2,3,1,7,4])` retourne `24` (`1*2 + 5*3 + 7*1`).
+* `to_upper_string(ch)` : retourne la chaîne de caractères `ch` en majuscule.
+  * Exemple : `to_upper_string("hello")` retourne `"HELLO"`.
+  * Note : vous pouvez utiliser [`String.upcase/1`](https://hexdocs.pm/elixir/String.html#upcase/2)
+    pour passer **un seul caractère en majuscule à la fois**.
+
+```elixir
+require Logger
+  
+defmodule Exercise3 do
+
+  # scalar_product
+  def scalar_product(l1, l2), do: scalar_product(l1, l2, 0) # entry point
+  
+  def scalar_product(l1, l2, scalar_sum) do
+    if l1 == [] || l2 == [] do
+      IO.puts("Sum = #{scalar_sum}")
+    else
+      scalar_product(tl(l1), tl(l2), scalar_sum + (hd(l1)*hd(l2)))
+    end
+  end
+
+  # to_upper_string doing ascii code math
+  def to_upper_string(ch) do
+    charlist = String.to_charlist(ch)
+    Enum.each(charlist, fn c ->
+      IO.write(<<c - 32>>)
+    end)
+  end
+end
+
+Exercise3.scalar_product([1,5,7], [2,3,1,7,4])
+
+Exercise3.to_upper_string("hello")
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Sum = 24
+HELLO
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+## Exercice 4 : Récursivité
+
+Développez les fonctions suivantes de manière récursive.
+
+* `count_vowels(ch)` : retourne le nombre de voyelles présentes dans la chaîne de caractères `ch`.
+  * Exemple : `count_vowels("hello")` retourne `2`.
+* `analyse_strings(lch)` : `lch` est une liste de chaînes de caractères. Cette fonction retourne
+  une liste de tuples formés des chaînes de caractères de `lch` et de leur taille.
+  * Note : vous pouvez utiliser la fonction [`String.length/1`](https://hexdocs.pm/elixir/String.html#length/1).
+  * Exemple : `analyse_strings(["hello","him","char"])` retourne la liste
+    `[{"hello",5},{"him",3},{"char",4}]`.
+* `analyse_strings2(lch)` : `lch` est une liste de chaînes de caractères. Cette fonction retourne
+  une liste de tuples formés des chaînes de caractères de `lch`, de leur taille et de leur
+  nombre de voyelles.
+  * Exemple : `analyse_strings2(["hello","him","char"])` retourne la liste
+    `[{"hello",5,2},{"him",3,1},{"char",4,1}]`.
+
+```elixir
+defmodule Exercise4 do
+  # count_vowels(ch)
+  def count_vowels(ch), do: count_vowels(String.graphemes(ch), 0)       # entry point, convert string to list
+  def count_vowels([], sum), do: sum      # IO.inspect("Number of vowels = #{sum}")
+  
+  def count_vowels(ch, sum) do
+    if hd(ch) in ["a", "e", "i", "o", "u"] do
+      count_vowels(tl(ch), sum+1)
+    else
+      count_vowels(tl(ch), sum)
+    end
+  end
+
+  # analyse_strings(lch)
+  def analyse_strings([]), do: Logger.info("Empty chained list.")
+  def analyse_strings(lch), do: analyse_strings(lch, [])   # entry point
+  def analyse_strings([], output_list) do
+    IO.inspect(Enum.reverse(output_list))
+  end
+  def analyse_strings(lch, output_list) do
+
+    str = hd(lch)
+    len = String.length(str)
+    
+    analyse_strings(tl(lch), [{str, len} | output_list])
+  end
+
+  # analyse_strings2(lch)
+  def analyse_strings2([]), do: Logger.info("Empty chained list.")
+  def analyse_strings2(lch), do: analyse_strings2(lch, [])   # entry point
+  def analyse_strings2([], output_list) do
+    IO.inspect(Enum.reverse(output_list))
+  end
+  def analyse_strings2(lch, output_list) do
+
+    str = hd(lch)
+    len = String.length(str)
+    vow = count_vowels(str)
+    
+    analyse_strings2(tl(lch), [{str, len, vow} | output_list])
+  end
+end
+
+
+Exercise4.count_vowels("hello")
+
+list_of_chains = ["hello","him","char"]
+list = [1,2,3,4]
+
+Exercise4.analyse_strings(list_of_chains)
+
+# retourne la liste [{"hello",5,2},{"him",3,1},{"char",4,1}].
+Exercise4.analyse_strings2(list_of_chains)
+
+
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[{"hello", 5}, {"him", 3}, {"char", 4}]
+[{"hello", 5, 2}, {"him", 3, 1}, {"char", 4, 1}]
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[{"hello", 5, 2}, {"him", 3, 1}, {"char", 4, 1}]
+```
