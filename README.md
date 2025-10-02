@@ -1,5 +1,4 @@
-# FALP
-Logic and functional programming (with Elixir and Prolog)
+# Functional and Logic programming (with Elixir and Prolog)
 
 ## Install [Livebook](https://github.com/livebook-dev/livebook) as follows ...
 
