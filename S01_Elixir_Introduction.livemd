@@ -2,20 +2,6 @@
 
 # S01 - Elixir (Introduction)
 
-## Info étudiant
-
-* étudiant : 
-
-## Instructions
-
-* Date butoir : Jeudi prochain à 05h00
-* Travail à rendre : une copie de votre livebook pour la série au format `.livemd`
-* N'oubliez pas de mettre votre nom au début du fichier
-
-## 1. Tutoriel Elixir
-
-Lisez le tutoriel Elixir trouvable à [cette adresse](https://hexdocs.pm/elixir/introduction.html).
-
 ## 2. Déclaration de fonctions
 
 Programmez en Elixir les fonctions suivantes :
@@ -178,20 +164,3 @@ result = Mystery.mystery(1, 2, 3, 4)
 IO.puts(result)
 ```
 
-<!-- livebook:{"output":true} -->
-
-```
-21
-```
-
-<!-- livebook:{"output":true} -->
-
-```
-:ok
-```
-
-### Réponse
-
-Cette function justement fait deux fois additions et apres une multiplication et l'imprime sur IO:
-
-Output = (input1 + input2) * (input3 + input4)
