@@ -2,16 +2,6 @@
 
 # S03 - Listes en Compréhension
 
-## Info étudiant
-
-* étudiant :
-
-## Instructions
-
-* Date butoir : Jeudi prochain à 05h00
-* Travail à rendre : une copie de votre livebook pour la série au format `.livemd`
-* N'oubliez pas de mettre votre nom au début du fichier
-
 ## Exercice 1
 
 Développez à nouveau les fonctions suivantes de la série 2 (avec leur type) mais cette
