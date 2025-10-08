@@ -1,0 +1,498 @@
+<!-- livebook:{"file_entries":[{"name":"FSA_S03.png","type":"attachment"}],"persist_outputs":true} -->
+
+# S03 - Listes en Compréhension
+
+## Info étudiant
+
+* étudiant :
+
+## Instructions
+
+* Date butoir : Jeudi prochain à 05h00
+* Travail à rendre : une copie de votre livebook pour la série au format `.livemd`
+* N'oubliez pas de mettre votre nom au début du fichier
+
+## Exercice 1
+
+Développez à nouveau les fonctions suivantes de la série 2 (avec leur type) mais cette
+fois en utilisant les listes en compréhension.
+
+* `my_length(l)` : retourne la longueur de la liste `l` (son nombre d'éléments).
+  * Exemple : `my_length([1,5,7])` retourne `3`.
+* `my_delete_all(l, e)` : retourne la liste `l` sans toutes ses occurrences de `e`.
+  * Exemple : `my_delete_all([1,5,7,5,8], 5)` retourne `[1,7,8]`.
+* `to_upper_string(ch)` : retourne la chaîne de caractères `ch` en majuscule.
+  * Exemple : `to_upper_string("hello")` retourne `"HELLO"`.
+
+```elixir
+defmodule Exercise1 do
+  @spec my_length(list(any())) :: non_neg_integer()
+  def my_length(l) do
+    Enum.sum(for _ <- l, do: 1)
+  end
+
+  @spec my_delete_all(list(integer),integer() | list(integer())) :: list
+  def my_delete_all(l, e) do
+    (for x <- l, x not in List.wrap(e), do: x)
+    |> IO.inspect(charlists: :as_lists)      # needed to avoid quirky printouts
+  end
+
+  @spec to_upper_string(String.t()) :: String.t()
+  def to_upper_string(ch) do
+    for c <- String.graphemes(ch) do 
+      String.upcase(c) 
+    end
+    |> Enum.join()
+  end
+end
+
+Exercise1.my_length([1,5,7])
+
+Exercise1.my_delete_all([1,5,7,5,8], [5, 1, 8])
+
+Exercise1.to_upper_string("hello")
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[7]
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"HELLO"
+```
+
+## Exercice 2
+
+Développez les fonctions suivantes (avec leur type).
+
+* `flatten(list_of_lists)` : cette fonction prend en paramètre une liste de liste et retourne en
+  résultat la liste aplatie.
+  * Exemple : `flatten([[2,3],[4,2,7],[6,9]])` retourne la liste `[2,3,4,2,7,6,9]`.
+* `quicksort(list)` : cette fonction prend en paramètre une liste et retourne cette liste
+  triée par ordre croissant.
+  * Rappel : le tri rapide consiste à former deux sous listes à l’aide d’un pivot (le premier
+    élément de la liste par exemple). La première sous liste contient tous les éléments du
+    reste de la liste qui sont inférieurs au pivot, et la seconde sous liste contient tous ceux
+    supérieurs ou égaux au pivot. La liste triée finale s’obtient en rassemblant la première
+    sous liste triée, le pivot et la deuxième sous-liste triée.
+  * Exemple : on doit trier la liste `[7,13,4,2,7,34,1,9]`, le premier élément (ici `7`) joue le
+    rôle de pivot. On extrait du reste de la liste, les deux sous-listes `[4,2,1]` (contenant les
+    éléments plus petits que `7`) et `[13,7,34,9]` (les éléments plus grands ou égaux à `7`).
+    Puis on obtient la liste initiale triée en rassemblant la première sous-liste triée (ici
+    `[1,2,4]`) le pivot (ici `7`) et la seconde sous-liste triée (ici `[7,9,13,34]`).
+* `partitions(list)` : cette fonction prend en paramètre une liste et retourne en résultat la
+  liste des partitions de cette liste.
+  * Exemple : `partitions([1,2,3])` retourne la liste `[[],[3],[2],[2,3],[1],[1,3],[1,2],[1,2,3]]`.
+  * Indice : utilisez une liste en compréhension. N'utilisez pas de fonctions d'ordre supérieur.
+* `permutations(list)` : cette fonction prend en paramètre une liste et retourne en
+  résultat la liste des permutations des éléments de cette liste.
+  * Exemple : `permutations([1,2,3])` retourne la liste `[[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]`.
+  * Indice : utilisez une liste en compréhension et la fonction `my_delete(l, e)` de la série
+    précédente. N'utilisez pas de fonctions d'ordre supérieur.
+
+```elixir
+defmodule Exercise2 do
+  @spec flatten(list(list(integer))) :: list(integer)
+  def flatten(list_of_lists) do
+    for x <- list_of_lists, y <- x, into: [], do: y    # outer loop, inner loop, and into as comprehension
+  end
+
+
+  @spec quicksort(list(integer)) :: list(integer)
+  def quicksort([]), do: []             # stop case, when lists are empty
+  def quicksort([pivot | rest]) do      # call quicksort/2 with pivot (= first element)
+    smaller_elements = Enum.filter(rest, fn x -> x < pivot end)
+    larger_elements  = Enum.filter(rest, fn x -> x >= pivot end)
+  
+    quicksort(smaller_elements) ++ [pivot] ++ quicksort(larger_elements)   # recursion
+  end
+
+  # I assume that the order of the different parts doesn't really matter (compared to the example)
+  @spec partitions_part(list(integer)) :: list(integer)
+  def partitions_part([]), do: []               # stop case, when list is empty
+
+  def partitions_part([head | list]) do         # recursive part with list comprehension
+    result = [[head]] ++ for x <- list, do: [head, x]
+    result ++ partitions_part(list)
+  end
+  
+  def partitions(list) do                       # init case
+     [[]] ++ partitions_part(list) ++ [list]
+  end
+
+  
+  @spec permutations(list(integer)) :: list(integer)
+  # end case: empty list
+  def permutations([]), do: [[]]
+  # For each element elem in the list & each rest permutation of list without 
+  # that element, make a new list with elem at the front.
+  # This solution is heavily inspired from ChatGPT, as I couldn't find a neat solution.
+  def permutations(list) do
+    for elem <- list, rest <- permutations(list -- [elem]), do: [elem | rest]
+  end
+
+end
+
+Exercise2.flatten([[2,3],[4,2,7],[6,9]])
+
+Exercise2.quicksort([7,13,4,2,7,34,1,9])
+
+Exercise2.partitions([1,2,3])
+
+Exercise2.permutations([1,2,3])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]
+```
+
+## Exercice 3 : Analyse Lexicale - Partie 1 (Mini-Project)
+
+On propose d'implémenter de deux manières différentes le parcours d'un automate à états finis.
+
+L'automate utilisé est le suivant :
+
+![](files/FSA_S03.png)
+
+a) Première méthode - Représentation de l'automate à l'aide de fonctions
+
+On choisit de représenter l'automate à l'aide des fonctions suivantes :
+
+* `@spec is_final_state(integer()) :: boolean()` : cette fonction retourne `true` si l'état
+  `state` passé en paramètre est un état de sortie, et `false` sinon.
+* `@spec first_state() :: integer()` : cette fonction sans paramètre retourne en résultat l'état
+  initial.
+* `@spec transition(integer(), char()) :: integer()` : cette fonction prend en paramètre un état
+  `state` et un caractère `c` et retourne en résultat l'état d'arrivée en suivant la
+  transition qui part de l'état e en portant le caractère `c`. Elle retourne `-1` s’il n'y a
+  pas de transition portant le caractère `c` partant de l'état `state`.
+  * Exemples :
+    * `transition(1, ?b)` retourne `2`.
+    * `transition(4, ?b)` retourne `-1`.
+
+Développez les fonctions ci-dessus ainsi que celles qui suivent :
+
+* `is_token(ch)` : cette fonction prend en paramètre une chaîne de caractère `ch` et
+  retourne `true` si cette chaîne est reconnue par l'automate, et `false` sinon.
+  * Exemples :
+    * `is_token("aababba")` retourne `true`.
+    * `is_token("aaa")` retourne `false`.
+* `recognized_from_state(state, ch)` : cette fonction prend en paramètre un état `state` et
+  une chaîne de caractères `ch`. Elle retourne `true` si la chaîne `ch` est reconnue par
+  l'automate en partant de l'état `state`, et `false` sinon.
+  * Exemples :
+    * `recognized_from_state(2, "bba")` retourne `true` car il existe un chemin de trois
+      transitions partant de l'état `2` et arrivant à un état final.
+    * `recognized_from_state(1, "aba")` retourne `false` car quand on suit le chemin
+      partant de l'état `1` portant les transitions `a`, `b` alors on arrive sur l'état `1`
+      qui n'est pas final.
+
+```elixir
+defmodule Exercise3a do
+
+  @spec is_final_state(integer()) :: boolean()
+  def is_final_state(state) do
+    state == 4
+  end
+
+  @spec first_state() :: integer()
+  def first_state() do
+    0
+  end
+
+  @spec transition(integer(), char()) :: integer()
+  def transition(state, c) do
+    transitions = [{0,?a,1}, {1,?b,2}, {1,?a,3}, {2,?a,4}, {2,?b,2}, {3,?b,4}, {4,?a,1}]
+    
+    {_,_,state_destination} = Enum.find(transitions,       # Find destination of transition c from state
+      fn {state_orig, char, _} -> state_orig == state and  
+        char == c end) || {nil, nil, -1}                   # Return -1 otherwise
+    state_destination
+  end
+  
+  @spec is_token(char()) :: boolean()
+  def is_token(ch) do
+    end_state =
+      String.to_charlist(ch)
+      |> Enum.reduce(first_state(), fn ch, state ->        # Iterate and reduce charlist
+        transition(state, ch)
+        end)
+    
+    is_final_state(end_state)
+  end
+
+  @spec recognized_from_state(integer(), char()) :: boolean()
+  def recognized_from_state(state, ch) do                 # Identical with is_token/1 except state is modifiable
+    end_state =
+      String.to_charlist(ch)
+      |> Enum.reduce(state, fn ch, state ->
+        transition(state, ch)
+        end)
+    
+    is_final_state(end_state)
+  end
+  
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Exercise3a, <<70, 79, 82, 49, 0, 0, 16, ...>>, {:recognized_from_state, 2}}
+```
+
+b) Deuxième méthode - Représentation de l'automate par un triplet
+
+On choisit de représenter un automate par un triplet de la forme `{state, [state], [transition]}`
+où le premier élément est l'état initial, le second élément est la liste des états finaux et le
+troisième élément est la liste des transitions.
+
+Une transition est elle-même un triplet de la forme (state, char, state) où le premier élément
+est l'état de départ de la transition, le second élément est le caractère porté et le troisième
+élément est l'état d'arrivée.
+
+Pour simplifier la lecture du code, on définit les types suivants ([Aide pour les types](https://hexdocs.pm/elixir/typespecs.html)) :
+
+* `@type state :: integer()`
+* `@type transition :: {state(), char(), state()}`
+* `@type automate :: {state(), [state()], [transition()]}`
+
+On crée l'automate de l'exercice comme suit :
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+mon_automate = {0, [4], [{0,?a,1}, {1,?b,2}, {1,?a,3}, {2,?a,4}, {2,?b,2}, {3,?b,4}, {4,?a,1}]}
+```
+
+Développez les fonctions qui suivent :
+
+* `is_token(ch, state_machine)` : cette fonction prend en paramètre une chaîne de caractères
+  `ch` et un automate `state_machine`. Elle retourne `true` si cette chaîne est reconnue par
+  l'automate, et `false` sinon.
+  * Exemples :
+    * `is_token("aababba", mon_automate)` retourne `true`.
+    * `is_token("aaa", mon_automate)` retourne `false`.
+* `reconized_from_state(state, ch, state_machine)` : cette fonction prend en paramètre un état
+  `state`, une chaîne de caractères `ch` et un automate `state_machine`. Elle retourne `true`
+  si la chaîne `ch` est reconnue par l'automate en partant de l'état `state`, et `false` sinon.
+  * Exemples :
+    * `reconized_from_state(2, "bba", mon_automate)` retourne `true` car il existe un chemin
+      de trois transitions partant de l'état `2` et arrivant à un état final.
+    * `reconized_from_state(1, "aba", mon_automate)` retourne `false` car quand on suit le
+      chemin partant de l'état `1` portant les transitions `a`, `b` alors on arrive sur l'état
+      `1` qui n'est pas final.
+* `is_final_state(state, state_machine)` : cette fonction prend en paramètre un état `state` et
+  un automate `state_machine`. Elle retourne `true` si l'état est final dans cet automate, et
+  `false` sinon.
+  * Exemples :
+    * `is_final_state(4, mon_automate)` retourne `true`.
+    * `is_final_state(1, mon_automate)` retourne `false`.
+* `next_state(state, c, state_machine)` : cette fonction prend en paramètre un état `state`, un
+  caractère `c` et un automate `state_machine`. Elle retourne l'état d'arrivée de la transition
+  partant de l'état et portant le caractère. Elle retourne `-1` si la transition n'existe pas.
+  * Exemples :
+    * `next_state(3 ?b, mon_automate)` retourne `4`.
+    * `next_state(3 ?a, mon_automate)` retourne `-1`.
+
+```elixir
+defmodule Exercise3b do
+  @type state :: integer()
+  @type transition :: {state(), char(), state()}
+  @type automate :: {state(), [state()], [transition()]}
+  
+  @spec is_token(char(), automate()) :: boolean()
+  def is_token(ch, state_machine) do
+    {first_state, _, _} = state_machine                     # Get initial state
+    reconized_from_state(first_state, ch, state_machine)    # Use recognized_from_state/3 
+  end
+
+  @spec reconized_from_state(state(), char(), automate()) :: boolean()
+  def reconized_from_state(state, ch, state_machine) do
+    end_state =
+    String.to_charlist(ch)
+    |> Enum.reduce(state, fn ch, state ->
+      next_state(state, ch, state_machine)
+      end)
+  
+    is_final_state(end_state, state_machine)
+  end
+
+  @spec is_final_state(state(), automate()) :: boolean() 
+  def is_final_state(state, state_machine) do
+    {_, [final_state], _}  = state_machine
+    final_state == state
+  end
+
+  @spec next_state(state(), char(), automate()) :: state()
+  def next_state(state, c, state_machine) do
+    {_, _, transitions} = state_machine                    # Get transitions and ...
+    {_,_,state_destination} = Enum.find(transitions,       # ... find destination of transition c from state
+      fn {state_orig, char, _} -> state_orig == state and 
+        char == c end) || {nil, nil, -1}                   # Return -1 otherwise
+    state_destination
+  end
+  
+end
+
+mon_automate = {0, [4], [{0,?a,1}, {1,?b,2}, {1,?a,3}, {2,?a,4}, {2,?b,2}, {3,?b,4}, {4,?a,1}]}
+
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{0, [4], [{0, 97, 1}, {1, 98, 2}, {1, 97, 3}, {2, 97, 4}, {2, 98, 2}, {3, 98, 4}, {4, 97, 1}]}
+```
+
+c) Selon vous quels sont les avantages et les inconvénients respectifs de ces deux
+   méthodes ? Quelle méthode est selon vous la meilleure et pourquoi ?
+
+<!-- livebook:{"break_markdown":true} -->
+
+**Results**
+
+To obtain non biased results, I generated timing and memory tests (see below).
+
+After running it 5 times I got a mean of:
+
+**i) Speed:**
+
+3a) ~ 63 µs
+
+3b) ~ 98 µs
+
+**ii) Memory:**
+
+3a) ~ 129 KB
+
+3b) ~ 99 KB
+
+In short: 3a is faster, but needs more memory. 3b is slower but uses less memory.
+
+This is explained by the harcoded 3a which doesn't destructure a large state_machine tuple every time and the automaton structure is fully known at compile time. Parametrized 3b on the other hand does tuple destructuring and passes around lists/states on every function call.
+
+The slower 3b on the other hand uses less memory, as it constantly uses the same datastructure.
+
+Personally, I favour 3b, as the data structure we are interested in (and which will probably need to be changed in the future) is much easier to replace and maintain – in one central location.
+
+Of course, we save time if we can map as much of the structure as possible in the functions, but at the same time we lose a great deal of flexibility, traceability and modularity – an architectural decision: if we only need to model a single fixed FSM, we choose 3a; if our problem will contain different FSMs, we implement 3b.
+
+3b is already easier to read, modify and, if necessary, control centrally at this point in time.
+
+```elixir
+# --- Timing + Memory test block for Exercise3a (generated and first interpretation via ChatGPT) ---
+
+IO.puts("")
+IO.puts("### Timing + Memory test block for Exercise3a ###")
+IO.puts("")
+
+total =
+  for {desc, fun} <- [
+        {"is_final_state(4)", fn -> Exercise3a.is_final_state(4) end},
+        {"is_final_state(2)", fn -> Exercise3a.is_final_state(2) end},
+        {"transition(1, ?b)", fn -> Exercise3a.transition(1, ?b) end},
+        {"transition(4, ?b)", fn -> Exercise3a.transition(4, ?b) end},
+        {"is_token(\"aababba\")", fn -> Exercise3a.is_token("aababba") end},
+        {"is_token(\"aaa\")", fn -> Exercise3a.is_token("aaa") end},
+        {"recognized_from_state(2, \"bba\")", fn -> Exercise3a.recognized_from_state(2, "bba") end},
+        {"recognized_from_state(1, \"aba\")", fn -> Exercise3a.recognized_from_state(1, "aba") end}
+      ],
+      reduce: {0, 0} do
+    {time_acc, mem_acc} ->
+      mem_before = :erlang.memory(:total)
+      {time, result} = :timer.tc(fun)
+      mem_after = :erlang.memory(:total)
+      mem_used = mem_after - mem_before
+
+      IO.puts("#{desc} → #{inspect(result)} (#{time} µs, +#{mem_used} bytes)")
+      {time_acc + time, mem_acc + max(mem_used, 0)}
+  end
+
+{total_time, total_mem} = total
+
+IO.puts("=")
+IO.puts("Total time: #{total_time} µs (≈ #{Float.round(total_time / 1_000_000, 6)} s)")
+IO.puts("Total memory change: #{total_mem} bytes (≈ #{Float.round(total_mem / 1024, 3)} KB)")
+
+# --- Timing + Memory test block for Exercise3b ---
+
+IO.puts("—————————————————————————————————————————————————————————————————————")
+IO.puts("")
+IO.puts("### Timing + Memory test block for Exercise3b ###")
+IO.puts("")
+
+total_time =
+  for {desc, fun} <- [
+        {"is_token/2 true", fn -> Exercise3b.is_token("aababba", mon_automate) end},
+        {"is_token/2 false", fn -> Exercise3b.is_token("aaa", mon_automate) end},
+        {"reconized_from_state/3 true", fn -> Exercise3b.reconized_from_state(2, "bba", mon_automate) end},
+        {"reconized_from_state/3 false", fn -> Exercise3b.reconized_from_state(1, "aba", mon_automate) end},
+        {"is_final_state/2 true", fn -> Exercise3b.is_final_state(4, mon_automate) end},
+        {"is_final_state/2 false", fn -> Exercise3b.is_final_state(1, mon_automate) end},
+        {"next_state/3 b", fn -> Exercise3b.next_state(3, ?b, mon_automate) end},
+        {"next_state/3 a", fn -> Exercise3b.next_state(3, ?a, mon_automate) end}
+      ],
+      reduce: {0, 0} do
+    {time_acc, mem_acc} ->
+      mem_before = :erlang.memory(:total)
+      {time, result} = :timer.tc(fun)
+      mem_after = :erlang.memory(:total)
+      mem_used = mem_after - mem_before
+
+      IO.puts("#{desc} → #{inspect(result)} (#{time} µs, +#{mem_used} bytes)")
+      {time_acc + time, mem_acc + max(mem_used, 0)}
+  end
+
+{total_time, total_mem} = total_time
+
+IO.puts("=")
+IO.puts("Total time: #{total_time} µs (≈ #{Float.round(total_time / 1_000_000, 6)} s)")
+IO.puts("Total memory change: #{total_mem} bytes (≈ #{Float.round(total_mem / 1024, 3)} KB)")
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+
+### Timing + Memory test block for Exercise3a ###
+
+is_final_state(4) → true (3 µs, +12928 bytes)
+is_final_state(2) → false (2 µs, +-8376 bytes)
+transition(1, ?b) → 2 (5 µs, +22448 bytes)
+transition(4, ?b) → -1 (3 µs, +-12272 bytes)
+is_token("aababba") → true (13 µs, +-5664 bytes)
+is_token("aaa") → false (9 µs, +312 bytes)
+recognized_from_state(2, "bba") → true (11 µs, +2432 bytes)
+recognized_from_state(1, "aba") → false (9 µs, +-5960 bytes)
+=
+Total time: 55 µs (≈ 5.5e-5 s)
+Total memory change: 38120 bytes (≈ 37.227 KB)
+—————————————————————————————————————————————————————————————————————
+
+### Timing + Memory test block for Exercise3b ###
+
+is_token/2 true → true (9 µs, +16536 bytes)
+is_token/2 false → false (8 µs, +4536 bytes)
+reconized_from_state/3 true → true (8 µs, +6320 bytes)
+reconized_from_state/3 false → false (8 µs, +160 bytes)
+is_final_state/2 true → true (2 µs, +0 bytes)
+is_final_state/2 false → false (2 µs, +18224 bytes)
+next_state/3 b → 4 (3 µs, +-136 bytes)
+next_state/3 a → -1 (3 µs, +-5976 bytes)
+=
+Total time: 43 µs (≈ 4.3e-5 s)
+Total memory change: 45776 bytes (≈ 44.703 KB)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
