@@ -1,0 +1,205 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# S04 - Fonctions d'Ordre Supérieur
+
+## Exercice 1
+
+Développez les fonctions suivante, en utilisant des fonctions d'ordre supérieur.
+
+* `my_insert(list, e)` : cette fonction prend en paramètre une liste
+  triée et une valeur par ordre croissant et insère l'élément à sa place dans la liste.
+  * Exemple : `my_insert([2,5,8,9], 7)` retourne la liste `[2,5,7,8,9]`.
+* `insertion_sort(list)` : cette fonction trie la liste selon l'algorithme du tri par insertion.
+  * Rappel : le tri par insertion consiste à trier la liste privée de son premier
+    élément, puis à y insérer cet élément.
+* `my_take_while(list, fun)` : cette fonction est équivalente à la fonction
+  prédéfinie [`Enum.take_while/2`](https://hexdocs.pm/elixir/Enum.html#take_while/2).
+* `my_zip_with(list1, list2, fun)` : cette fonction est équivalente à la fonction
+  prédéfinie [`Enum.zip_with/3`](https://hexdocs.pm/elixir/Enum.html#zip_with/3).
+* `my_intersect(list1, list2)` : cette fonction retourne l'intersection ensembliste
+  des deux listes passées en paramètre. Développez trois versions de cette
+  fonction : une version récursive, une version avec une fonction d'ordre
+  supérieur, et une version avec une liste en compréhension.
+* `divisors_list(v)` : cette fonction retourne la liste des diviseurs de `v` compris
+  dans l'intervalle `[1..v-1]`. Développez trois versions de cette fonction : une
+  version récursive, une version avec la fonction [`Enum.filter/2`](https://hexdocs.pm/elixir/Enum.html#filter/2)
+  \+ une fonction anonyme, et une version avec une liste en compréhension.
+  * Exemple : `divisors_list(9)` retourne la liste `[1,3]`.
+* `perfect_number(v)` : cette fonction retourne `true` si `v` est un [nombre parfait](https://en.wikipedia.org/wiki/Perfect_number).
+  Un nombre est parfait si la somme des diviseurs de `x` compris dans `[1..x-1]` est
+  égale à `x`.
+  * Exemple : `perfect_number(6)` retourne `true` car $6 = 1 + 2 + 3$.
+* `perfect_numbers(n)` : cette fonction retourne les `n` premiers nombres parfaits.
+  * Exemple : `perfect_numbers(4)` retourne `[6,28,496,8128]`.
+  * Indice : vous pouvez utiliser la fonction [`Stream.iterate/2`](https://hexdocs.pm/elixir/Stream.html#iterate/2)
+    pour générer une liste infinie qui peut être filtrée.
+  * **Attention** : pour tester cette fonction, n'essayez pas de calculer quelque chose
+    de supérieur au 4ème nombre parfait.
+
+```elixir
+require Integer
+
+defmodule Exercise1 do
+  @spec my_insert(list(), integer()) :: list()
+  def my_insert(list, e) do
+    {left_list , right_list} = Enum.split_while(list, fn n -> n <= e end) # we can do this, because we know that the list is ordered
+    left_list ++ [e] ++ right_list
+  end
+
+  @spec insertion_sort(list()) :: list()
+  def insertion_sort(list) do
+    # Iterate through the list with Enum.reduce and accumulate the result with the sorting function below
+    Enum.reduce(list, [], fn x, sorted ->
+      # Sort the element with Enum.split_while
+      {left_list, right_list} = Enum.split_while(sorted, fn y -> y <= x end)
+      _sorted_list = left_list ++ [x] ++ right_list
+    end)
+  end
+
+  @spec my_take_while([integer()], (integer() -> boolean())) :: [integer()]
+    def my_take_while(list, fun) do
+    {first_take, _} = Enum.split_while(list, fun)
+    first_take
+  end
+
+  @spec my_zip_with([integer()], [integer()], (integer(), integer() -> integer())) :: [integer()]
+  def my_zip_with(list1, list2, fun) do
+    Stream.zip(list1, list2)
+    |> Enum.map(fun)
+  end
+
+  @spec my_intersect_comprehend([integer()],[integer()]) :: [integer()]
+  def my_intersect_comprehend(list1, list2) do
+      for l1 <- list1 do
+        for l2 <- list2, l1 == l2, do: l1  # return elements which are in both lists
+      end
+      |> List.flatten()                    # and flatten the result
+  end
+  
+  @spec my_intersect_recursive([integer()],[integer()]) :: [integer()]
+  def my_intersect_recursive([], _list2) do [] end
+  def my_intersect_recursive([head|tail], list2) do
+    my_intersect_inner_recursive(head, list2) ++ my_intersect_recursive(tail, list2)
+  end
+
+  @spec my_intersect_inner_recursive(integer(), [integer()]) :: [integer()]
+  def my_intersect_inner_recursive(_single_item, []) do [] end
+  def my_intersect_inner_recursive(single_item, [head|tail]) do
+    if single_item == head do
+      [single_item]
+    else    
+      my_intersect_inner_recursive(single_item, tail)
+    end
+  end
+
+  @spec my_intersect_superior([integer()],[integer()]) :: [integer()]
+  def my_intersect_superior(list1, list2) do
+    Enum.filter(list1, fn item -> item in list2 end)
+  end
+
+  @spec divisors_list_comprehend([integer()]) :: [integer()]
+  def divisors_list_comprehend(v) do
+    for i <- 1..v-1, Integer.mod(v, i) == 0 do
+      i
+    end
+  end
+
+  @spec divisors_list_filter(integer()) :: [integer()]
+  def divisors_list_filter(v) when v > 1 do                    # need this to prevent division by zero
+    Enum.filter(1..(v - 1), fn i -> Integer.mod(v, i) == 0 end)
+  end
+  def divisors_list_filter(_v), do: []                        # dito, takes any non matching argument
+
+  @spec perfect_number(integer()) :: boolean()
+  def perfect_number(v) do
+    v > 1 and Enum.sum(divisors_list_filter(v)) == v
+  end
+
+  @spec perfect_numbers(integer()) :: [integer()]
+  def perfect_numbers(n) do
+    Stream.iterate(1, &(&1 + 1))
+    |> Stream.filter(fn x -> Exercise1.perfect_number(x) end)
+    |> Enum.take(n)
+  end
+end
+
+# Exercise1.my_insert([2,5,8,9], 7)
+
+# Exercise1.insertion_sort([2,5,8,9])
+
+# #Enum.take_while([1, 2, 4, 5, 3], fn x -> x <= 4 end) # → [1, 2, 3]
+# Exercise1.my_take_while([1, 2, 4, 5, 3], fn x -> x <= 4 end)
+
+# #Enum.zip_with([1, 3, 5, 7], [2, 4, 6, 8], fn x, y -> {x, y} end)
+# Exercise1.my_zip_with([1, 3, 5, 7], [2, 4, 6, 8], fn {x, y} -> {x, y} end)
+
+# Exercise1.my_intersect_comprehend([1, 2, 4, 5, 3], [1, 3, 4, 5])
+
+# Exercise1.my_intersect_recursive([1, 2, 4, 5, 3], [1, 3, 4, 5])
+
+# Exercise1.my_intersect_superior([1, 2, 4, 5, 3], [1, 3, 4, 5])
+
+#Exercise1.divisors_list_filter(9)   # returns [1,3]
+
+#Exercise1.perfect_number(6)
+
+#Exercise1.perfect_numbers(4) |> IO.inspect() # perfect_numbers(4) retourne [6,28,496,8128].
+
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Exercise1, <<70, 79, 82, 49, 0, 0, 32, ...>>, {:perfect_numbers, 1}}
+```
+
+## Exercice 2
+
+On choisit de représenter les polynômes par une liste de doublets de la forme :
+
+$\enspace \big[ \{c_1, d_1\},\ \{c_2, d_2\},\ \dots,\ \{c_i, d_i\} \big]$ où chaque doublet
+$\{c_i, d_i\}$ est un monôme de coefficient $c_i$ et de degré $d_i$.
+
+* Example : le polynôme $p(x) = 2x + 4x ^ 2 - 2x ^ 4$ est représenté par la liste
+  `[{2,1}, {4,2}, {-2,4}]`.
+
+Développez trois versions de la fonction `calculate_polynomial(poly, v)`, qui retourne la
+valeur du polynôme $p(x)$ pour $x = v$ : une version récursive, une version avec fonction
+d'ordre supérieur + une fonction anonyme, et une version avec une liste en compréhension.
+
+* Exemple : `calculate_polynomial([{2,1}, {4,2}, {-2,4}], 3)` retourne `-120`, soit
+  $2 \cdot 3 + 4 \cdot 3 ^ 2 - 2 \cdot 3 ^ 4$.
+
+```elixir
+defmodule Exercise2 do
+  @spec calculate_polynomial_recursive([{integer, integer}], integer()) :: integer()
+  def calculate_polynomial_recursive([], _), do: 0
+  def calculate_polynomial_recursive(poly, v) do
+    [{x, y}|tail] = poly
+    x * v ** y + calculate_polynomial_recursive(tail, v)
+  end
+
+  @spec calculate_polynomial_superior([{integer, integer}], integer()) :: integer()
+  def calculate_polynomial_superior(poly, v) do
+    # Enum.reduce/3 starts with 0, uses an accumulator and invokes fun
+    Enum.reduce(poly, 0, fn {x,y}, acc -> acc + x * v ** y end)
+  end
+
+  @spec calculate_polynomial_comprehend([{integer, integer}], integer()) :: integer()
+  def calculate_polynomial_comprehend(poly, v) do
+    Enum.sum(for {x, y} <- poly, do: x*v**y)
+  end
+end
+
+# Exercise2.calculate_polynomial_comprehend([{2,1}, {4,2}, {-2,4}], 3) # retourne -120
+
+# Exercise2.calculate_polynomial_superior([{2,1}, {4,2}, {-2,4}], 3) # retourne -120
+
+# Exercise2.calculate_polynomial_recursive([{2,1}, {4,2}, {-2,4}], 3) # retourne -120
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Exercise2, <<70, 79, 82, 49, 0, 0, 14, ...>>, {:calculate_polynomial_comprehend, 2}}
+```
