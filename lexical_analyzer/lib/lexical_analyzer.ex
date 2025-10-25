@@ -1,4 +1,5 @@
 tokens = [
+      # TODO: rewrite this block (if applicable) with constructors
       {:begin_block, {0, [1], %{0 => {&(&1 == ?{), 1}}}},
       {:end_block, {0, [1], %{0 => {&(&1 == ?}), 1}}}},
       {:begin_par, {0, [1], %{0 => {&(&1 == ?(), 1}}}},
@@ -64,10 +65,38 @@ defmodule LexicalAnalyzer do
     {_, [final_state], _}  = automaton
     state == final_state
   end
+
+  # next_state(state, c, automaton) prend en paramètre un état state, un caractère c et un automate.
+  # Elle retourne l'état d'arrivée de la transition partant de l'état et portant le caractère.
+  # Elle retourne -1 si la transition n'existe pas.
+  def next_state(state, c, automaton) do
+    {_, _, transitions} = automaton                             # Get transitions from the automaton
+    {predicate, next_state} = transitions[state]                # TODO: Error Handling
+
+    if predicate.(c) do
+      next_state
+    else
+      raise "Invalid transition from state #{state} on character #{inspect c}"
+    end
+  end
+
+  def recognized_from_state(state, text, acc, token) do
+
+  end
+
 end
 
 
 
 #test_automat = Automaton.new(0, [1], %{0 => [{&(&1 == ?{), 1}]}) # est l'automate qui reconnaît la chaîne de caractère "{".
 
-IO.puts(LexicalAnalyzer.is_final_state(0, {0, [0], %{0 => {&(&1 == ?{), 1}}}))
+# {:begin_block, {0, [1], %{0 => {&(&1 == ?{), 1}}}}
+
+
+# TODO: implement is_final_state, next_state and recognized_from_state(state, text, acc, token) as "fonctions auxiliaires".
+
+# is_final_state (done)
+#IO.puts(LexicalAnalyzer.is_final_state(0, {0, [0], %{0 => {&(&1 == ?{), 1}}}))
+
+# implement next_state (done)
+IO.puts(LexicalAnalyzer.next_state(0, ?{, {0, [1], %{0 => {&(&1 == ?{), 1}}}))  # returns 1
