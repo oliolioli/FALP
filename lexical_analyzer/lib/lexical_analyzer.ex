@@ -71,32 +71,53 @@ defmodule LexicalAnalyzer do
   # Elle retourne -1 si la transition n'existe pas.
   def next_state(state, c, automaton) do
     {_, _, transitions} = automaton                             # Get transitions from the automaton
-    {predicate, next_state} = transitions[state]                # TODO: Error Handling
+    {predicate, next_state} = transitions[state]                # TODO: Error Handling (for example when transition[n] doesn't exists)
 
     if predicate.(c) do
       next_state
     else
-      raise "Invalid transition from state #{state} on character #{inspect c}"
+      0
+      #raise "Invalid transition from state #{state} on character #{inspect c}"
     end
   end
 
-  def recognized_from_state(state, text, acc, token) do
+  def recognized_from_state(state, text, {rec, len}, token) do
 
+    {tokent_ident, {_, final_state, _}} = token
+
+    IO.inspect(tokent_ident)     # we will need this as return value
+    IO.inspect(final_state)     # we will need this to interrupt reading (and return rest)
+
+
+
+    Enum.reduce(text, {rec, len}, fn c, {rec, len} ->
+      IO.puts(c)
+      IO.inspect({rec, len})
+
+      #next_state(len, c, token) # Hier weiterfahren. Wir müssen wissen, wann wir das Ende erreichen
+                                 # dazu somehow abgleichen, ob wir final_state erreicht haben
+
+      {rec ++ [c], len + 1}      # Update accmulator with record and length
+    end)
   end
+
+
+    # {recognized, length} =
+    #   Enum.reduce(text, {[], 0}, fn char, {rec_acc, len_acc} ->
+    #     IO.puts("Char: #{<<char>>}")
+    #     {rec_acc ++ [char], len_acc + 1}
+    #   end)
 
 end
 
 
-
-#test_automat = Automaton.new(0, [1], %{0 => [{&(&1 == ?{), 1}]}) # est l'automate qui reconnaît la chaîne de caractère "{".
-
-# {:begin_block, {0, [1], %{0 => {&(&1 == ?{), 1}}}}
-
-
-# TODO: implement is_final_state, next_state and recognized_from_state(state, text, acc, token) as "fonctions auxiliaires".
 
 # is_final_state (done)
 #IO.puts(LexicalAnalyzer.is_final_state(0, {0, [0], %{0 => {&(&1 == ?{), 1}}}))
 
 # implement next_state (done)
 IO.puts(LexicalAnalyzer.next_state(0, ?{, {0, [1], %{0 => {&(&1 == ?{), 1}}}))  # returns 1
+
+
+# retourne le quadruplet {:ok, {:ident, "toto"}, 4, ~c"=3;"}
+LexicalAnalyzer.recognized_from_state(0, ~c"toto=3;", {[], 0}, Enum.at(tokens, 15))
