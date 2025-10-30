@@ -264,6 +264,7 @@ defmodule Automaton do
   # ✔️ recognized_from_state retourne un quadruplet {:ok, rec_token, length, rest} 
   # où rec_token est le doublet {code, rec} - le code du token et la partie du texte reconnue
   # rec - length est la longueur de la partie du texte reconnue par le token et rest est la partie du texte qui suit.  
+  # TODO - Check: Cette fonction est "gloutonne", car elle reconnaît la plus grande partie possible de texte. 
   def recognized_from_state(state, text, {rec, len}, token) do
     {_end_state, rec, length} =
     Enum.reduce_while(text, {state, rec, len}, fn char, {state, rec, len} ->
@@ -278,36 +279,61 @@ defmodule Automaton do
     
     rest = Enum.drop(text, length)            # return the rest of the unparsed text
 
-    if length == 0 do
+    if length == 0 do                         # return :error nothing is parsed
       {:error}
     else
-      {:ok, { elem(token, 0), rec }, length, rest}
+      {:ok, { elem(token, 0), rec }, length, rest} 
     end
   end
+
+  
+  # fetch_recognized_token recherche quel est le token qui reconnaît le début du texte text 
+  # avec la liste des tokens du langage tokens.
+  # Elle retourne un triplet {:ok, rec_token, rest} où rec_token est le doublet {code, rec}  -
+  # le code du token reconnu et la partie du texte reconnue rec - et rest est la partie du texte
+  # qui suit la partie du texte reconnu. retourne :error si le texte n'est reconnu par aucun tokens.
+  def fetch_recognized_token(text, tokens) do
+      Enum.map(tokens, fn token ->
+        recognized_from_state(0, text, {~c"", 0}, token)
+        end) 
+      |> Enum.filter(fn
+        {:ok, _, _, _} -> true            # filter for successfull tokens
+        _ -> false
+      end)
+      |> case do
+       [] -> {:error}                     # return :error when result is empty, ...
+       matches -> matches                 # ... otherwise the found results (=matches)
+     end
+  end
+  
 end
 
-# is_final_state & next_state (done)
-#IO.puts(Automaton.is_final_state(1, {0, [1], %{0 => {&(&1 == ?{), 1}}}))  # returns true
-#IO.puts(Automaton.next_state(0, ?{, {0, [1], %{0 => {&(&1 == ?{), 1}}}))  # returns 1
-#IO.puts(Automaton.next_state(1, ?=, {0, [2], %{0 => {&(&1 == ?=), 1}, 1 => {&(&1 == ?=), 2}}})) # returns 2
+#Automaton.is_final_state(1, Enum.at(tokens, 15))  # returns true ✔️
 
-# Automaton.recognized_from_state(0, ~c"toto", {[], 0}, Enum.at(tokens, 15))
-# Automaton.recognized_from_state(0, ~c"if", {[], 0}, Enum.at(tokens, 12))
-# Automaton.recognized_from_state(0, ~c"if", {[], 0}, Enum.at(tokens, 12))
-# Automaton.recognized_from_state(0, ~c"}", {[], 0}, Enum.at(tokens, 1))
-#Automaton.recognized_from_state(0, ~c"toto=3", {[], 0}, Enum.at(tokens, 15))
-Automaton.recognized_from_state(0, ~c"toto=3", {~c"", 0}, Enum.at(tokens, 15))
-Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15))
+# retourne le quadruplet {:ok, {:ident, "toto"}, 4, ~c"=3;"} :
+# Automaton.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(tokens,15)) ✔️
+# Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15)) # retourne :error ✔️
 
-# retourne le quadruplet {:ok, {:ident, "toto"}, 4, ~c"=3;"}
-#Automaton.recognized_from_state(0, ~c"toto=3", {[], 0}, Enum.at(tokens, 15))
+#Automaton.fetch_recognized_token(~c"toto", tokens)
+
+# retourne le triplet {:ok, {:begin_block, "{"}, ~c"x=3;}"} 
+# car le texte commence par le token ~c"{", et ~c"x=3;}" est la partie du texte qui suit.
+Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 0))
+Automaton.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(tokens, 1))
+#Automaton.fetch_recognized_token(~c"{x=3;}", tokens) 
 
 ```
 
 <!-- livebook:{"output":true} -->
 
 ```
-{:error}
+** (MatchError) no match of right hand side value: nil
+    #cell:7d777kf3fxnwsnl7:64: Automaton.next_state/3
+    #cell:7d777kf3fxnwsnl7:86: anonymous fn/3 in Automaton.recognized_from_state/4
+    (elixir 1.18.4) lib/enum.ex:4968: Enumerable.List.reduce/3
+    (elixir 1.18.4) lib/enum.ex:2600: Enum.reduce_while/3
+    #cell:7d777kf3fxnwsnl7:85: Automaton.recognized_from_state/4
+    #cell:7d777kf3fxnwsnl7:136: (file)
 ```
 
 #### Ajoutez de la documentation à votre code :
