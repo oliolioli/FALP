@@ -245,12 +245,14 @@ defmodule Automaton do
   # Elle retourne l'état d'arrivée de la transition partant de l'état et portant le caractère.
   # Elle retourne -1 si la transition n'existe pas.
   def next_state(state, c, automaton) do
-    {_, {_, _, transitions }} = automaton                     # Get transitions from the automaton
-    {predicate, next_state} = transitions[state]              # TODO: Error Handling (for example when transition[n] doesn't exists)
-    if predicate.(c) do
+    {_, {_, [_final_state], transitions }} = automaton                   # get automatons transitions
+    {predicate, next_state} = Map.get(transitions, state, {nil, -1})     # if transition doesn't exist, set {nil, -1} for error handling
+    #IO.inspect("Transition from state #{state} → #{next_state}")
+    
+    if predicate != nil and predicate.(c) do
       next_state
     else
-      -1                                                      # -1 means that there is no further next step
+      -1                                              # -1 means that there is no further next step
     end
   end
 
@@ -266,19 +268,20 @@ defmodule Automaton do
   # rec - length est la longueur de la partie du texte reconnue par le token et rest est la partie du texte qui suit.  
   # TODO - Check: Cette fonction est "gloutonne", car elle reconnaît la plus grande partie possible de texte. 
   def recognized_from_state(state, text, {rec, len}, token) do
-    {_end_state, rec, length} =
+    {_, rec, length} =
     Enum.reduce_while(text, {state, rec, len}, fn char, {state, rec, len} ->
+      # IO.inspect(text)
+      # IO.inspect(<<char>>)
       next = next_state(state, char, token)
-
+        
       if next == -1 do
         {:halt, {state, rec, len}}               # stop immediately
       else
         {:cont, {next, rec ++ [char], len + 1}}  # continue accumulating
       end
     end)
-    
     rest = Enum.drop(text, length)            # return the rest of the unparsed text
-
+    
     if length == 0 do                         # return :error nothing is parsed
       {:error}
     else
@@ -297,7 +300,7 @@ defmodule Automaton do
         recognized_from_state(0, text, {~c"", 0}, token)
         end) 
       |> Enum.filter(fn
-        {:ok, _, _, _} -> true            # filter for successfull tokens
+        {:ok, _, _, _} -> true            # filter the successful tokens
         _ -> false
       end)
       |> case do
@@ -309,17 +312,21 @@ defmodule Automaton do
 end
 
 #Automaton.is_final_state(1, Enum.at(tokens, 15))  # returns true ✔️
-
 # retourne le quadruplet {:ok, {:ident, "toto"}, 4, ~c"=3;"} :
-# Automaton.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(tokens,15)) ✔️
-# Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15)) # retourne :error ✔️
+#Automaton.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(tokens,15)) #✔️
+#Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15)) # retourne :error ✔️
+#Automaton.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(tokens, 0)) #✔️
+#Automaton.recognized_from_state(0, ~c"{abc", {~c"", 0}, Enum.at(tokens, 0)) #✔️
+#Automaton.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(tokens,15)) #✔️
+#Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15)) #retourne :error ✔️ 
+#Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 0)) # ❌
+#Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 0))
 
 #Automaton.fetch_recognized_token(~c"toto", tokens)
 
 # retourne le triplet {:ok, {:begin_block, "{"}, ~c"x=3;}"} 
 # car le texte commence par le token ~c"{", et ~c"x=3;}" est la partie du texte qui suit.
-Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 0))
-Automaton.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(tokens, 1))
+
 #Automaton.fetch_recognized_token(~c"{x=3;}", tokens) 
 
 ```
@@ -327,13 +334,7 @@ Automaton.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(tokens, 1))
 <!-- livebook:{"output":true} -->
 
 ```
-** (MatchError) no match of right hand side value: nil
-    #cell:7d777kf3fxnwsnl7:64: Automaton.next_state/3
-    #cell:7d777kf3fxnwsnl7:86: anonymous fn/3 in Automaton.recognized_from_state/4
-    (elixir 1.18.4) lib/enum.ex:4968: Enumerable.List.reduce/3
-    (elixir 1.18.4) lib/enum.ex:2600: Enum.reduce_while/3
-    #cell:7d777kf3fxnwsnl7:85: Automaton.recognized_from_state/4
-    #cell:7d777kf3fxnwsnl7:136: (file)
+{:ok, {:begin_block, ~c"{"}, 1, ~c"x=3;}"}
 ```
 
 #### Ajoutez de la documentation à votre code :
