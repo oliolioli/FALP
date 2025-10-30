@@ -343,23 +343,40 @@ end
 #Automaton.fetch_recognized_token(~c"whilex (x==3)", tokens) # ❌ - returns the first triplet ok, but then a second bad one
 
 
+# trim(~c" int x = y;") retourne ~c"int x = y;".
+
+Für lex_analysis!() könnte man wohl benützen:
+
+# Returns a list of all the elements
+def get_all_parsing_items(input) do
+    input
+    |> String.split(";", trim: true)
+    |> Enum.map(&String.trim/1)  
+    |> Enum.reject(&(&1 == ""))
+end
+
+und (korrigiertes) sowas:
+def lex_analysis_2(input_strings), do: lex_analysis_2(input_strings, tokens())
+def lex_analysis_2(input_strings, tokens) do
+  result_list = [
+    input_strings 
+    |> String.split(~r/\s+/)     # ~r/\s+/ matches any stretch of spaces / tabs / newlines.
+    |> Enum.map(fn word ->
+      fetch_token!(~c"#{word}", tokens)
+  end)]
+end
 ```
 
 <!-- livebook:{"output":true} -->
 
 ```
-warning: variable "text" is unused (if the variable is not meant to be used, prefix it with an underscore)
-└─ /home/oli/Documents/uni/FALP/Serien/S06_Lexical_Analysis_Part_3.livemd#cell:7d777kf3fxnwsnl7:132: Automaton.lex_analysis!/2
-
-warning: variable "tokens" is unused (if the variable is not meant to be used, prefix it with an underscore)
-└─ /home/oli/Documents/uni/FALP/Serien/S06_Lexical_Analysis_Part_3.livemd#cell:7d777kf3fxnwsnl7:132: Automaton.lex_analysis!/2
-
-```
-
-<!-- livebook:{"output":true} -->
-
-```
-{:module, Automaton, <<70, 79, 82, 49, 0, 0, 29, ...>>, {:lex_analysis!, 2}}
+** (SyntaxError) invalid syntax found on /home/oli/Documents/uni/FALP/Serien/S06_Lexical_Analysis_Part_3.livemd#cell:7d777kf3fxnwsnl7:163:1:
+     error: invalid character "ü" (code point U+00FC) in alias (only ASCII characters, without punctuation, are allowed): Für
+     │
+ 163 │ Für lex_analysis!() könnte man wohl benützen:
+     │ ^
+     │
+     └─ /home/oli/Documents/uni/FALP/Serien/S06_Lexical_Analysis_Part_3.livemd#cell:7d777kf3fxnwsnl7:163:1
 ```
 
 #### Ajoutez de la documentation à votre code :
