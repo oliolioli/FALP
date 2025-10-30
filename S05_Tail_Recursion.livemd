@@ -2,16 +2,6 @@
 
 # S05 - Récursivité Terminale
 
-## Info étudiant
-
-* étudiant : *Olivier Meier*
-
-## Instructions
-
-* Date butoir : Jeudi prochain à 05h00
-* Travail à rendre : une copie de votre livebook pour la série au format `.livemd`
-* N'oubliez pas de mettre votre nom au début du fichier
-
 ## Exercice 1
 
 **Attention** : Par "plis", on entend les fonctions [`List.foldl/3`](https://hexdocs.pm/elixir/List.html#foldl/3) pour un plis à gauche, et
