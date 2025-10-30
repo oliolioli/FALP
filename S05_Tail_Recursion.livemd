@@ -1,0 +1,511 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# S05 - Récursivité Terminale
+
+## Info étudiant
+
+* étudiant : *Olivier Meier*
+
+## Instructions
+
+* Date butoir : Jeudi prochain à 05h00
+* Travail à rendre : une copie de votre livebook pour la série au format `.livemd`
+* N'oubliez pas de mettre votre nom au début du fichier
+
+## Exercice 1
+
+**Attention** : Par "plis", on entend les fonctions [`List.foldl/3`](https://hexdocs.pm/elixir/List.html#foldl/3) pour un plis à gauche, et
+[`List.foldr/3`](https://hexdocs.pm/elixir/List.html#foldr/3) pour un plis à droite. Elles s'agit
+de fonctions similaires à [`Enum.reduce/3`](https://hexdocs.pm/elixir/Enum.html#reduce/3), mais
+spécifiques aux listes.
+
+Développez les fonctions suivantes.
+
+* `fibonacci(n)` : cette fonction retourne le `n`-ième nombre de Fibonacci. Développez deux
+  versions de cette fonction: une version avec accumulateur et une version avec programmation
+  par continuation.
+* `my_product(list)` : cette fonction retourne le produit des éléments de la liste passée
+  en paramètre. Développez trois versions de cette fonction: une version avec accumulateur,
+  une version avec programmation par continuation, et une version avec un plis.
+  * Exemple : `my_product([2,3,4])` retourne `24`.
+* `my_flatten(list)` : cette fonction prend en paramètre une liste de listes et retourne en
+  résultat la liste aplatie. Développez quatre versions de cette fonction: une version avec
+  accumulateur, une version avec programmation par continuation, une version avec un plis à
+  gauche, et une version avec un plis à droite.
+  * Exemple : `my_flatten([[2,3],[4,2,7],[6,9]])` retourne la liste `[2,3,4,2,7,6,9]`.
+* `my_delete_all(list, e)` : retourne la liste sans toutes ses occurrences de `e`. Développez
+  trois versions de cette fonction: une version avec accumulateur, une version avec programmation
+  par continuation et une version avec un plis.
+* `my_insert(list, e)` : cette fonction prend en paramètre une liste triée par ordre croissant
+  et une valeur et insère l'élément à sa place dans la liste. Développez deux versions de cette
+  fonction: une version avec accumulateur et une version avec programmation par continuation.
+  * Exemple : `my_insert([2,5,8,9], 7)` retourne la liste `[2,5,7,8,9]`.
+
+```elixir
+# The two fibonacci solutions and all of the if/else clauses were done with examples and help of ChatGPT.
+defmodule Exercise1 do
+  @spec fibonacci_cont(integer()) :: integer()
+  def fibonacci_cont(n), do: fibonacci_cont(n, fn x -> x end)
+  defp fibonacci_cont(0, cont), do: cont.(0)   # base cases
+  defp fibonacci_cont(1, cont), do: cont.(1)
+  defp fibonacci_cont(2, cont), do: cont.(1) 
+
+  @spec fibonacci_cont(integer(), integer()) :: integer()
+  defp fibonacci_cont(n, cont), do:            # continuous passing
+    fibonacci_cont(n - 1, fn result_n1 -> 
+      fibonacci_cont(n - 2, fn result_n2 ->
+        cont.(result_n1 + result_n2)
+      end)      
+    end)
+
+  @spec fibonacci_acc(integer()) :: integer()
+  def fibonacci_acc(n), do: fibonacci_acc(n, 0, 1)
+  defp fibonacci_acc(0, a, _b), do: a
+  defp fibonacci_acc(n, a, b), do: fibonacci_acc(n - 1, b, a + b)
+
+  
+  @spec my_product_acc(list(integer())) :: integer()
+  def my_product_acc(list), do: my_product_acc(list, 1)
+  defp my_product_acc([], acc), do: acc
+  defp my_product_acc([head|tail], acc) do
+    my_product_acc(tail, acc * head)
+  end
+
+  @spec my_product_cont(list(integer())) :: integer()
+  def my_product_cont(list), do: my_product_cont(list, fn list -> list end)
+  defp my_product_cont([], cont), do: cont.(1)
+  defp my_product_cont(list, cont), do: my_product_cont(tl(list), fn result -> cont.(hd(list) * result) end)
+
+  @spec my_product_fold(list(integer())) :: integer()
+  # Enum.reduce/3 is implemented in C/BEAM-level recursion, and it’s tail-recursive. (Source: ChatGPT)
+  def my_product_fold(list) do
+    Enum.reduce(list, 1, fn x, acc -> acc * x end)
+  end
+
+  
+  @spec my_flatten_acc(list(integer())) :: list(integer())
+  def my_flatten_acc(list), do: my_flatten_acc(list, [])
+  defp my_flatten_acc([], acc), do: acc        # base case
+  defp my_flatten_acc([head|tail], acc) do
+      my_flatten_acc(tail, acc ++ head)
+  end
+
+  @spec my_flatten_cont(list(integer())) :: list(integer())
+  def my_flatten_cont(list), do: my_flatten_cont(list, fn list -> list end)    # base identity function
+  defp my_flatten_cont([], cont), do: cont.([])
+  defp my_flatten_cont([head|tail], cont), do: my_flatten_cont(tail, fn result -> cont.(head ++ result) end)
+
+  @spec my_flatten_foldleft(list(integer())) :: list(integer())
+  def my_flatten_foldleft([]), do: []
+  def my_flatten_foldleft(list) do
+    List.foldl(list, [], fn x, acc -> acc ++ x end)
+  end
+
+  @spec my_flatten_foldright(list(integer())) :: list(integer())
+  def my_flatten_foldright([]), do: []
+  def my_flatten_foldright(list) do
+    List.foldr(list, [], fn x, acc -> x ++ acc end)      # only diff to foldleft is order of concatination
+  end
+
+  
+  @spec my_delete_all_acc(list(any()), any()) :: list(any())
+  def my_delete_all_acc(list, e), do: my_delete_all_acc(list, e, [])
+  defp my_delete_all_acc([], _e, acc), do: acc
+  defp my_delete_all_acc([head | tail], e, acc) do
+    my_delete_all_acc(tail, e, (if head == e, do: acc, else: acc ++ [head]))
+  end
+
+  @spec my_delete_all_cont(list(any()), any()) :: list(any())
+  def my_delete_all_cont(list, e), do: my_delete_all_cont(list, e, fn list -> list end)
+  defp my_delete_all_cont([], _e, cont), do: cont.([])
+  defp my_delete_all_cont([head | tail], e, cont) do
+    my_delete_all_cont(tail, e, fn result -> 
+      if head == e do cont.(result) 
+      else cont.([head | result]) end 
+      end)
+  end
+
+  @spec my_delete_all_foldright(list(any()), any()) :: list(any())
+  def my_delete_all_foldright(list, e) do
+    List.foldr(list, [], fn x, acc -> 
+      if x == e, do: acc, else: [x] ++ acc end)
+  end
+
+  
+  @spec my_insert_acc(list(integer()), integer()) :: list(integer())
+  def my_insert_acc(list, e), do: my_insert_acc(list, e, [])
+  defp my_insert_acc([], _e, acc), do: acc
+  defp my_insert_acc([head | tail], e, acc) do
+    if head < e do my_insert_acc(tail, e, acc ++ [head]) 
+    else acc ++ [e, head | tail] end
+  end
+
+  @spec my_insert_cont(list(integer()), integer()) :: list(integer())
+  def my_insert_cont(list, e), do: my_insert_cont(list, e, fn list -> list end)
+  defp my_insert_cont([], e, cont), do: cont.([e])
+  defp my_insert_cont([head | tail], e, cont) do
+    if head < e do my_insert_cont(
+      tail, e, fn result -> cont.([head | result]) 
+      end)
+    else 
+      cont.([e, head | tail]) 
+    end
+  end
+end
+
+Exercise1.fibonacci_cont(8)
+Exercise1.fibonacci_acc(5)
+
+Exercise1.my_product_acc([2,3,4]) # retourne 24.
+Exercise1.my_product_cont([2,3,4]) # retourne 24.
+Exercise1.my_product_fold([2,3,4])
+
+Exercise1.my_flatten_acc([[2,3],[4,2,7],[6,9]]) # retourne la liste [2,3,4,2,7,6,9].
+Exercise1.my_flatten_cont([[2,3],[4,2,7],[6,9]])
+Exercise1.my_flatten_foldleft([[2,3],[4,2,7],[6,9]])
+Exercise1.my_flatten_foldright([[2,3],[4,2,7],[6,9]])
+
+Exercise1.my_delete_all_acc(["a","b","e","d","e","f","g"], "e")
+Exercise1.my_delete_all_cont(["a","b","e","d","e","f","g"], "e")
+Exercise1.my_delete_all_foldright(["a","b","e","d","e","f","g"], "e")
+
+Exercise1.my_insert_acc([2,5,8,9], 7) # retourne la liste [2,5,7,8,9].
+Exercise1.my_insert_cont([2,5,8,9], 7)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[2, 5, 7, 8, 9]
+```
+
+## Exercice 2 : Analyse Lexicale - Partie 2 (Mini-Project)
+
+Dans cet exercice, nous poursuivons l'analyse lexicale commencée dans l'exercice 3 de la série 03.
+
+Le but de cet exercice est de transformer un texte source d'un mini langage en une suite
+   de tokens. Les tokens reconnus pour ce langage sont :
+
+* `begin_block` qui est exprimé par le caractère `"{"`
+* `end_block` qui est exprimé par le caractère `"}"`
+* `begin_par` qui est exprimé par le caractère `"("`
+* `end_par` qui est exprimé par le caractère `")"`
+* `semicolon` qui est exprimé par le caractère `";"`
+* `op_eg` qui est exprimé par la suite de caractère `"=="`
+* `op_affect` qui est exprimé par le caractère `"="`
+* `op_add` qui est exprimé par le caractère `"+"`
+* `op_minus` qui est exprimé par le caractère `"-"`
+* `op_mult` qui est exprimé par le caractère `"*"`
+* `op_div` qui est exprimé par le caractère `"/"`
+* `type_int` qui est exprimé par la suite de caractères `"int"`
+* `cond` qui est exprimé par la suite de caractères `"if"`
+* `loop` qui est exprimé par la suite de caractères `"while"`
+* `value_int` qui est exprimé par une suite de caractère respectant l'expression
+  régulière `[0-9]+`
+* `ident` qui est exprimé par une suite de caractère respectant l'expression régulière
+  `[A-Za-z_][A-Za-z0-9_]*`
+
+### Typespec
+
+Les types introduits dans la série 03 sont en partie repris et complétés comme suit :
+
+* Un état d'un automate est modélisé par un entier ou `nil`
+
+  ```elixir
+  @type state :: integer() | nil
+  ```
+
+* Un prédicat d'un transition est modélisé par une fonction booléenne qui décrit le
+  caractère porté par la transition
+
+  ```elixir
+  @type predicate :: (char() -> boolean())
+  ```
+
+* Les transitions d'un automate sont modélisées par une mappe qui associe chaque état de
+  départ d'une transition à un doublet : le prédicat de la transition et l'état d'arrivée
+  de la transition
+
+  ```elixir
+  @type transitions :: %{state() => {predicate(), state()}}
+  ```
+
+* Le code représentant un token est modélisé par un atome
+
+  ```elixir
+  @type code :: atom()
+  ```
+
+* Un automate est modélisé par un triplet : l'état initial de l'automate, la liste de ses
+  états finaux, et la mappe de ses transitions
+
+  ```elixir
+  @type automaton :: {state(), [state()], transitions()}
+  ```
+
+* Un token est modélisé par un doublet : son code et l'automate modélisant le token
+
+  ```elixir
+  @type token :: {code(), automaton()}
+  ```
+
+**Important** : dans cet exercice, par souci de simplification, on suppose que tous
+les tokens du texte à analyser sont séparés par des espaces, par example :
+`"int x ; int y ; x = y * 2 ; "`
+
+### Travail à faire
+
+Représentez chacun des tokens de ce langage, par exemple :
+
+* `begin_block` est représenté par le doublet :
+
+  ```elixir
+  t1 = {:begin_block, {0, [1], %{0 => {&(&1 == ?{), 1}}}}
+  ```
+
+  * `{0, [1], %{0 => {&(&1 == ?{), 1}}}` est l'automate qui reconnaît la chaîne de
+    caractère `"{"`.
+  * `%{0 => {&(&1 == ?{), 1}}}` est la seule transition de cet automate. Son état
+    de départ est l'état `0`, son état d'arrivée est l'état `1` et le caractère
+    porté satisfait le prédicat `&(&1 == ?{)`.
+
+* `op_eg` est représenté par le doublet :
+
+  ```elixir
+  t2 = {:op_eg, {0, [2], %{0 => {&(&1 == ?=), 1}, 1 => {&(&1 == ?=), 2}}}}
+  ```
+
+  * `{0, [2], %{0 => {&(&1 == ?=), 1}, 1 => {&(&1 == ?=), 2}}}` est l'automate qui
+    reconnaît la chaîne de caractères `"=="`.
+  * `%{0 => {&(&1 == ?=), 1}, 1 => {&(&1 == ?=), 2}}` sont les deux transition de cet
+    automate. Son état de départ est l'état `0`, son état d'arrivée est l'état `2` et
+    les caractères porté satisfont deux fois le prédicat `&(&1 == ?=)`.
+
+Développez les fonctions qui suivent :
+
+* Reprenez et adaptez au besoin les fonctions `is_token/2`, `recognized_from_state/3`,
+  `is_final_state/2` et `next_state/3` de l'exercice 3b de la série 03.
+* `@spec fetch_token!(charlist(), [token()]) :: code()` : cette fonction prend une chaîne
+  de caractères et retourne le code du token correspondant à cette chaîne. Elle crée une
+  exception si la chaîne de caractères passée en paramètre ne correspond à aucun token.
+  * Exemple : `fetch_token!(~c"toto", tokens)` retourne `:ident` car `~c"toto"` est reconnu
+    par l'automate du token `ident`.
+  * Indice : vous pouvez générer une exception grâce à la fonction
+    [`raise/1`](https://hexdocs.pm/elixir/Kernel.html#raise/1). Elle crée une exception
+    et affiche la chaîne de caractères qui lui est passée en argument.
+* `@spec lex_analysis(String.t(), [token()]) :: [code()]` : cette fonction prend un texte
+  source en paramètre et retourne la liste des tokens correspondant.
+  * Indice : vous pouvez utiliser la fonction
+    [`String.split/1`](https://hexdocs.pm/elixir/String.html#split/1) qui permet de séparer
+    une chaîne de caractères en liste de mots.
+  * Exemple : `lex_analysis("int x ; int y ; x = y * 2 ; ", tokens)` retourne la liste
+    `[:type_int, :ident, :semicolon, :type_int, :ident, :semicolon, :ident, :op_affect,
+    :ident, :op_mult, :value_int, :semicolon]`
+
+```elixir
+automaton = {
+  0,            # start state
+  [1],          # possible next states
+  %{
+    0 => {&(&1 == ?{), 1},   # from state 0, `{` → state 1
+    1 => {&(&1 == ?}), 2}    # from state 1, `}` → state 2
+  }
+}
+
+defmodule LexicalAnalyzer do
+    def next_state(state, c, automaton) do
+    {_, _, transitions} = automaton                           # Get transitions from the automaton
+    {predicate, next_state} = transitions[state]              # TODO: Error Handling (for example when transition[n] doesn't exists)
+
+    if predicate.(c) do
+      next_state
+    else
+      raise "Invalid transition from state #{state} on character #{inspect c}"
+    end
+  end
+end
+
+LexicalAnalyzer.next_state(0, ?{, automaton) # → 1
+#LexicalAnalyzer.next_state(1, ?}, automaton) # → 2
+
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+1
+```
+
+```elixir
+defmodule Exercise2 do
+  
+  @type state :: integer() | nil
+  @type predicate :: (char() -> boolean())
+  @type transitions :: %{state() => {predicate(), state()}}
+  @type code :: atom()
+  @type automaton :: {state(), [state()], transitions()}
+  @type token :: {code(), automaton()}
+
+  def tokens do
+    [
+      {:begin_block, 
+        {0, [1], 
+          %{
+            0 => {&(&1 == ?{), 1}
+          }
+        }},
+      {:end_block, {0, [1], %{0 => {&(&1 == ?}), 1}}}},
+      {:begin_par, {0, [1], %{0 => {&(&1 == ?(), 1}}}},
+      {:end_par, {0, [1], %{0 => {&(&1 == ?)), 1}}}},
+      {:semicolon, {0, [1], %{0 => {&(&1 == ?;), 1}}}},
+      {:op_eg, {0, [2], %{0 => {&(&1 == ?=), 1}, 1 => {&(&1 == ?=), 2}}}},
+      {:op_affect, {0, [1], %{0 => {&(&1 == ?=), 1}}}},
+      {:op_add, {0, [1], %{0 => {&(&1 == ?+), 1}}}},
+      {:op_minus, {0, [1], %{0 => {&(&1 == ?-), 1}}}},
+      {:op_mult, {0, [1], %{0 => {&(&1 == ?*), 1}}}},
+      {:op_div, {0, [1], %{0 => {&(&1 == ?/), 1}}}},
+      {:type_int, {0, [3], %{0 => {&(&1 == ?i), 1}, 1 => {&(&1 == ?n), 2}, 2 => {&(&1 == ?t), 3}}}},
+      {:cond, {0, [2], %{0 => {&(&1 == ?i), 1}, 1 => {&(&1 == ?f), 2}}}},
+      {:loop, {0, [5], %{0 => {&(&1 == ?w), 1}, 1 => {&(&1 == ?h), 2}, 2 => {&(&1 == ?i), 3}, 3 => {&(&1 == ?l), 4}, 4 => {&(&1 == ?e), 5}}}},
+      {:value_int, {0, [1], %{0 => {&(&1 in ?0..?9), 1}, 1 => {&(&1 in ?0..?9), 1}}}},
+      {:ident, {0, [1], %{0 => {&(&1 in ?A..?Z or &1 in ?a..?z or &1 == ?_), 1}, 1 => {&(&1 in ?A..?Z or &1 in ?a..?z or &1 in ?0..?9 or &1 == ?_), 1}}}}
+    ]
+  end
+
+  # is_token(ch, state_machine) : cette fonction prend en paramètre une chaîne de caractères ch et un automate state_machine. 
+  # Elle retourne true si cette chaîne est reconnue par l'automate, et false sinon.
+  @spec is_token(char(), automaton()) :: boolean()
+  def is_token(ch, state_machine) do
+    {first_state, _, _} = state_machine                     # Get initial state
+    reconized_from_state(first_state, ch, state_machine)    # Use recognized_from_state/3 
+  end
+
+  # reconized_from_state(state, ch, state_machine) : cette fonction prend en paramètre un état state, 
+  # une chaîne de caractères ch et un automate state_machine. 
+  # Elle retourne true si la chaîne ch est reconnue par l'automate en partant de l'état state, 
+  # et false sinon.
+  @spec reconized_from_state(state(), char(), automaton()) :: boolean()
+  def reconized_from_state(state, ch, state_machine) do
+    end_state = Enum.reduce(ch, state, fn ch, state ->
+      next_state(state, ch, state_machine)
+      end)
+  
+    is_final_state(end_state, state_machine)
+  end
+
+  # is_final_state(state, state_machine) : cette fonction prend en paramètre un état state et un automate state_machine. 
+  # Elle retourne true si l'état est final dans cet automate, et false sinon.
+  @spec is_final_state(state(), automaton()) :: boolean() 
+  def is_final_state(state, state_machine) do
+    {_, [final_state], _}  = state_machine
+    final_state == state
+  end  
+
+  # cette fonction prend en paramètre un état state, un caractère c et un automate state_machine. Elle retourne l'état d'arrivée de la transition
+  # partant de l'état et portant le caractère. Elle retourne -1 si la transition n'existe pas.
+  @spec next_state(state(), char(), automaton()) :: state()
+  def next_state(state, c, state_machine) do
+    
+    {inital_state, final_state, transitions} = state_machine                    # Get transitions and ...
+    {predicate, next_state} = transitions[state]
+
+    if predicate.(c) do 
+      next_state
+    end
+  end
+
+  def fetch_token!(charlist), do: fetch_token!(charlist, tokens())  
+  @spec fetch_token!(charlist(), [token()]) :: code()
+  def fetch_token!(charlist, tokens) do
+    tokens |> Enum.map(fn {token_code, x} -> 
+      { token_code, is_token(charlist, x) }
+      end)
+  end
+
+  def filter_fetched_token(fetched_result) do
+    fetched_result
+    |> Enum.filter(fn {_token_code, token_automaton} -> token_automaton end)
+    |> Enum.map(fn {token_code, _token_automaton} -> token_code end)
+  end
+
+  
+  @spec lex_analysis(String.t()) :: [code()]
+  def lex_analysis(input_strings), do: lex_analysis(input_strings, tokens())
+  
+  @spec lex_analysis(String.t(), [token()]) :: [code()]
+  def lex_analysis(input_strings, tokens) do
+    input_strings 
+    |> String.split(~r/\s+/)     # ~r/\s+/ matches any stretch of spaces / tabs / newlines.
+    |> Enum.map(fn word ->
+         fetch_token!(~c"#{word}", tokens)
+        end)
+  end
+
+  def lex_analysis_2(input_strings), do: lex_analysis_2(input_strings, tokens())
+  def lex_analysis_2(input_strings, tokens) do
+    result_list = [
+      input_strings 
+      |> String.split(~r/\s+/)     # ~r/\s+/ matches any stretch of spaces / tabs / newlines.
+      |> Enum.map(fn word ->
+        fetch_token!(~c"#{word}", tokens)
+    end)]
+  end
+
+  # Returns a list of all the elements
+  def get_all_parsing_items(input) do
+      input
+      |> String.split(";", trim: true)
+      |> Enum.map(&String.trim/1)  
+      |> Enum.reject(&(&1 == ""))
+  end
+end
+
+
+
+
+#Exercise2.lex_analysis(";") # works, returns a bool list     # funktioniert
+#Exercise2.lex_analysis(";") # works, returns a bool list     # funktioniert, aber nur mit Semikolon
+
+#Exercise2.is_token(~c";", Exercise2.tokens())
+
+#Exercise2.fetch_token!(~c";")     # funktioniert
+# Exercise2.fetch_token!(~c"toto")   
+
+#Exercise2.get_all_parsing_items("int x ; int y ; x = y * 2 ; ")          # funktioniert
+
+# Exercise2.is_token(~c"h", {0, [1], %{0 => {&(&1 == ?{), 1}}})
+#Exercise2.lex_analysis("int x ; int y ; x = y * 2 ; ")
+#Exercise2.fetch_token!(~c"toto")
+#Exercise2.lex_analysis("int x ; int y ; x = y * 2 ; ")
+# Exercise2.fetch_token!(~c"toto") # retourne :ident
+Exercise2.fetch_token!(~c"{") # retourne :ident
+|>
+Exercise2.filter_fetched_token()
+
+Exercise2.is_token(~c";", Exercise2.tokens())
+
+Exercise2.reconized_from_state()
+
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+warning: variable "final_state" is unused (if the variable is not meant to be used, prefix it with an underscore)
+└─ /home/oli/Documents/uni/FALP/Serien/OlivierMeier_S05_Tail_Recursion.livemd#cell:2oqvxudrzzxnocq5:70: Exercise2.next_state/3
+
+warning: variable "inital_state" is unused (if the variable is not meant to be used, prefix it with an underscore)
+└─ /home/oli/Documents/uni/FALP/Serien/OlivierMeier_S05_Tail_Recursion.livemd#cell:2oqvxudrzzxnocq5:70: Exercise2.next_state/3
+
+warning: variable "result_list" is unused (if the variable is not meant to be used, prefix it with an underscore)
+└─ /home/oli/Documents/uni/FALP/Serien/OlivierMeier_S05_Tail_Recursion.livemd#cell:2oqvxudrzzxnocq5:108: Exercise2.lex_analysis_2/2
+
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+** (MatchError) no match of right hand side value: [begin_block: {0, [1], %{0 => {#Function<7.3497918/1 in Exercise2.tokens/0>, 1}}}, end_block: {0, [1], %{0 => {#Function<8.3497918/1 in Exercise2.tokens/0>, 1}}}, begin_par: {0, [1], %{0 => {#Function<9.3497918/1 in Exercise2.tokens/0>, 1}}}, end_par: {0, [1], %{0 => {#Function<10.3497918/1 in Exercise2.tokens/0>, 1}}}, semicolon: {0, [1], %{0 => {#Function<11.3497918/1 in Exercise2.tokens/0>, 1}}}, op_eg: {0, [2], %{0 => {#Function<12.3497918/1 in Exercise2.tokens/0>, 1}, 1 => {#Function<13.3497918/1 in Exercise2.tokens/0>, 2}}}, op_affect: {0, [1], %{0 => {#Function<14.3497918/1 in Exercise2.tokens/0>, 1}}}, op_add: {0, [1], %{0 => {#Function<15.3497918/1 in Exercise2.tokens/0>, 1}}}, op_minus: {0, [1], %{0 => {#Function<16.3497918/1 in Exercise2.tokens/0>, 1}}}, op_mult: {0, [1], %{0 => {#Function<17.3497918/1 in Exercise2.tokens/0>, 1}}}, op_div: {0, [1], %{0 => {#Function<18.3497918/1 in Exercise2.tokens/0>, 1}}}, type_int: {0, [3], %{0 => {#Function<19.3497918/1 in Exercise2.tokens/0>, 1}, 1 => {#Function<20.3497918/1 in Exercise2.tokens/0>, 2}, 2 => {#Function<21.3497918/1 in Exercise2.tokens/0>, 3}}}, cond: {0, [2], %{0 => {#Function<22.3497918/1 in Exercise2.tokens/0>, 1}, 1 => {#Function<23.3497918/1 in Exercise2.tokens/0>, 2}}}, loop: {0, [5], %{0 => {#Function<24.3497918/1 in Exercise2.tokens/0>, 1}, 1 => {#Function<25.3497918/1 in Exercise2.tokens/0>, 2}, 2 => {#Function<26.3497918/1 in Exercise2.tokens/0>, 3}, 3 => {#Function<27.3497918/1 in Exercise2.tokens/0>, 4}, 4 => {#Function<28.3497918/1 in Exercise2.tokens/0>, 5}}}, value_int: {0, [1], %{0 => {#Function<29.3497918/1 in Exercise2.tokens/0>, 1}, 1 => {#Function<30.3497918/1 in Exercise2.tokens/0>, 1}}}, ident: {0, [1], %{0 => {#Function<31.3497918/1 in Exercise2.tokens/0>, 1}, 1 => {#Function<32.3497918/1 in Exercise2.tokens/0>, 1}}}]
+    #cell:2oqvxudrzzxnocq5:40: Exercise2.is_token/2
+    #cell:2oqvxudrzzxnocq5:147: (file)
+```

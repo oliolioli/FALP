@@ -1,0 +1,381 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# S06 - Analyse Lexicale - Partie 3 (Mini-Project)
+
+## Info étudiant
+
+* étudiant : *<prénom+nom ici>*
+
+## Instructions
+
+* Date butoir : Jeudi **dans deux semaines** à 05h00
+* Travail à rendre : une copie de votre livebook pour le mini-projet au format `.livemd`,
+  incluant la documentation de votre code intégrée celui-ci, et votre retour théorique personnel.
+* N'oubliez pas de mettre votre nom au début du fichier
+
+## Exercice 1
+
+Dans cet exercice, nous terminons l'analyse lexicale commencée dans l'exercice 3 de la série 05.
+
+Les tokens reconnus pour ce langage sont :
+
+* `begin_block` qui est exprimé par le caractère `"{"`
+* `end_block` qui est exprimé par le caractère `"}"`
+* `begin_par` qui est exprimé par le caractère `"("`
+* `end_par` qui est exprimé par le caractère `")"`
+* `semicolon` qui est exprimé par le caractère `";"`
+* `op_eg` qui est exprimé par la suite de caractère `"=="`
+* `op_affect` qui est exprimé par le caractère `"="`
+* `op_add` qui est exprimé par le caractère `"+"`
+* `op_minus` qui est exprimé par le caractère `"-"`
+* `op_mult` qui est exprimé par le caractère `"*"`
+* `op_div` qui est exprimé par le caractère `"/"`
+* `type_int` qui est exprimé par la suite de caractères `"int"`
+* `cond` qui est exprimé par la suite de caractères `"if"`
+* `loop` qui est exprimé par la suite de caractères `"while"`
+* `value_int` qui est exprimé par une suite de caractère respectant l'expression
+  régulière `[0-9]+`
+* `ident` qui est exprimé par une suite de caractère respectant l'expression régulière
+  `[A-Za-z_][A-Za-z0-9_]*`
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Typespec
+
+Les types introduits dans la série 05 sont en partie repris et transformés comme suit :
+
+* Un automate est modélisé par une structure : l'état initial de l'automate, la liste de ses
+  états finaux, et la mappe de ses transitions
+
+  ```elixir
+  @type t :: %Automaton{
+    initial: valid_state(),
+    finals: [valid_state(), ...],
+    transitions: transitions()
+  }
+  ```
+
+  * ```elixir
+    @type valid_state :: integer()
+    ```
+  * ```elixir
+    @type state :: valid_state() | nil
+    ```
+  * ```elixir
+    @type predicate :: (char() -> boolean())
+    ```
+  * ```elixir
+    @type transitions :: %{valid_state() => [{predicate(), valid_state()}, ...]}
+    ```
+
+* Un token est modélisé par une structure : son code et l'automate modélisant le token
+
+  ```elixir
+  @type t :: %Token{code: code(), automaton: Automaton.t()}
+  ```
+
+  * ```elixir
+    @type code :: atom()
+    ```
+
+* Un token reconnu est modélisé par une doublet : son code et le mot reconnu
+
+  ```elixir
+  @type recognized_token :: {Token.code(), String.t()}
+  ```
+
+#### Important
+
+La simplification adoptée dans la série 05 supposant que les tokens du texte à analyser sont
+séparés par des espaces est abandonnée.
+
+Les tokens du texte à reconnaître ne sont donc plus forcément séparés par des espaces, par
+exemple :
+
+`"int x; int y; x=y*2;"`
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Travail à faire
+
+#### Représentez chacun des tokens de ce langage, par exemple :
+
+* `begin_block` est représenté par la structure :
+  ```elixir
+  t01 = Token.new(:begin_block, Automaton.new(0, [1], %{0 => [{&(&1 == ?{), 1}]}))
+  ```
+
+  * `Automaton.new(0, [1], %{0 => [{&(&1 == ?{), 1}]})` est l'automate qui reconnaît
+    la chaîne de caractère `"{"`.
+  * `%{0 => [{&(&1 == ?{), 1}]}` est la seule transition de cet automate. Son état de
+    départ est l'état `0`, son état d'arrivée est l'état `1` et le caractère porté
+    satisfait le prédicat `&(&1 == ?{)`.
+
+#### Développez les fonctions qui suivent :
+
+* Reprenez et adaptez au besoin les fonctions `is_final_state/2` et `next_state/3` de
+  l'exercice 2 de la série 05 comme fonctions **auxiliaires**.
+
+* `recognized_from_state(state, text, acc, token)` : cette fonction **auxiliaire**
+  cherche à extraire du texte `text` un token en utilisant l'automate à état fini du
+  `token`, l'état de départ `state` et l'accumulateur `acc` contenant un doublet
+  `{rec, length}` - la partie du texte reconnue `rec` et sa longueur `length`.
+
+  Elle retourne un quadruplet `{:ok, rec_token, length, rest}` où `rec_token` est le
+  doublet `{code, rec}` - le `code` du token et la partie du texte reconnue `rec` -
+  `length` est la longueur de la partie du texte reconnue par le token et `rest` est
+  la partie du texte qui suit. Elle retourne `:error` si le début de `text` n'est pas
+  reconnu par le token. Cette fonction est "gloutonne", car elle reconnaît la plus grande
+  partie possible de texte.
+
+  * Exemple : si `t16` est la structure `%Token{}` permettant de reconnaître des
+    identificateurs, cela signifie que l'on cherche si le début du texte est reconnu par
+    le token :
+
+    `recognized_from_state(0, ~c"toto=3;", {~c"", 0}, t16)` retourne le quadruplet
+    `{:ok, {:ident, "toto"}, 4, ~c"=3;"}` où `{:ident, "toto"}` est le token reconnu par
+    `t16`, `4` est la longueur car `~c"toto"` est le plus grand identificateur au début du
+    texte `~c"toto=3;"` et `~c"=3;"` est la partie du texte située après la partie
+    reconnue.
+
+    `recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, t16)` retourne `:error` car le texte
+    ne commence pas par un identificateur.
+
+* `fetch_recognized_token(text, tokens)` : cette fonction recherche quel est le token qui
+  reconnaît le début du texte `text` avec la liste des tokens du langage `tokens`.
+
+  Elle retourne un triplet `{:ok, rec_token, rest}` où `rec_token` est le doublet
+  `{code, rec}` - le `code` du token reconnu et la partie du texte reconnue `rec` - et
+  `rest` est la partie du texte qui suit la partie du texte reconnu. Elle retourne `:error`
+  si le texte n'est reconnu par aucun des tokens du langage.
+
+  * Exemple : si `lt` est la liste des tokens du langage :
+
+    `fetch_recognized_token(~c"{x=3;}", lt)` retourne le triplet
+    `{:ok, {:begin_block, "{"}, ~c"x=3;}"}` car le texte commence par le token `~c"{"`, et
+    `~c"x=3;}"` est la partie du texte qui suit.
+
+    `fetch_recognized_token(~c": x=3;", lt)` retourne `:error` car le texte commence par
+    le token `~c":"` qui n'est reconnu par aucun des tokens.
+
+  * **Attention** : `fetch_recognized_token(~c"while (x==3)", lt)` doit retourner le
+    triplet `{:ok, {:loop, "while"}, ~c" (x==3)"}` et non le triplet
+    `{:ok, {:ident, "while"}, ~c" (x==3)"}`.
+
+  * Indice : l'ordre dans lequel les tokens sont testés par cette fonction est
+    significatif. Le token reconnu est celui qui reconnaît le plus long mot. Si deux tokens
+    reconnaissent le même mot le gagnant est le premier qui a été testé.
+
+* `lex_analysis!(text, tokens)` : cette fonction retourne la liste des codes des tokens
+  composant le texte `text`. Elle crée une exception s'il y a une partie qui n'est
+  reconnue par aucun des tokens du langage.
+
+  * Exemple : `lex_analysis!("toto=3;", lt)` retourne la liste
+
+    ```elixir
+    [ident: "toto", op_affect: "=", value_int: "3", semicolon: ";"]
+    ```
+
+  * Indice : vous pouvez implémenter et utiliser une fonction **auxiliaire** `trim(text)`
+    qui retourne la chaîne de caractères `text` sans ses premiers caractères qui sont des
+    espaces.
+
+    * Exemple : `trim(~c" int x = y;")` retourne `~c"int x = y;"`.
+
+```elixir
+tokens = [
+      # TODO: rewrite this block (if applicable) with constructors
+      {:begin_block, {
+        0, [1], %{0 => {&(&1 == ?{), 1}}}
+      },
+      {:end_block, {0, [1], %{0 => {&(&1 == ?}), 1}}}},
+      {:begin_par, {0, [1], %{0 => {&(&1 == ?(), 1}}}},
+      {:end_par, {0, [1], %{0 => {&(&1 == ?)), 1}}}},
+      {:semicolon, {0, [1], %{0 => {&(&1 == ?;), 1}}}},
+      {:op_eg, {0, [2], %{0 => {&(&1 == ?=), 1}, 1 => {&(&1 == ?=), 2}}}},
+      {:op_affect, {0, [1], %{0 => {&(&1 == ?=), 1}}}},
+      {:op_add, {0, [1], %{0 => {&(&1 == ?+), 1}}}},
+      {:op_minus, {0, [1], %{0 => {&(&1 == ?-), 1}}}},
+      {:op_mult, {0, [1], %{0 => {&(&1 == ?*), 1}}}},
+      {:op_div, {0, [1], %{0 => {&(&1 == ?/), 1}}}},
+      {:type_int, {0, [3], %{0 => {&(&1 == ?i), 1}, 1 => {&(&1 == ?n), 2}, 2 => {&(&1 == ?t), 3}}}},
+      {:cond, {0, [2], %{0 => {&(&1 == ?i), 1}, 1 => {&(&1 == ?f), 2}}}},
+      {:loop, {0, [5], %{0 => {&(&1 == ?w), 1}, 1 => {&(&1 == ?h), 2}, 2 => {&(&1 == ?i), 3}, 3 => {&(&1 == ?l), 4}, 4 => {&(&1 == ?e), 5}}}},
+      {:value_int, {0, [1], %{0 => {&(&1 in ?0..?9), 1}, 1 => {&(&1 in ?0..?9), 1}}}},
+      {:ident, {0, [1], %{0 => {&(&1 in ?A..?Z or &1 in ?a..?z or &1 == ?_), 1}, 1 => {&(&1 in ?A..?Z or &1 in ?a..?z or &1 in ?0..?9 or &1 == ?_), 1}}}}
+  ]
+
+defmodule Token do
+  @type code :: atom()
+  @type recognized_token :: {Token.code(), String.t()}
+
+  defstruct [:code, :automaton]
+
+  @type t :: %Token{
+    code: code(),
+    automaton: Automaton.t()
+  }
+end
+
+defmodule Automaton do
+  @type valid_state :: integer()
+  @type state :: valid_state() | nil
+  @type predicate :: (char() -> boolean())
+  @type transitions :: %{valid_state() => [{predicate(), valid_state()}, ...]}
+
+  defstruct [:initial, :finals, :transitions]
+
+  @type t :: %Automaton{
+    initial: valid_state(),
+    finals: [valid_state(), ...],
+    transitions: transitions()
+  }
+
+  # Constructor for Automaton
+  def new(initial, finals, transitions) do
+  %Automaton{
+      initial: initial,
+      finals: finals,
+      transitions: transitions
+    }
+    IO.inspect("Automaton constructed.")
+  end
+
+  # ✔️ next_state(state, c, automaton) prend en paramètre un état state, un caractère c et un automate.
+  # Elle retourne l'état d'arrivée de la transition partant de l'état et portant le caractère.
+  # Elle retourne -1 si la transition n'existe pas.
+  def next_state(state, c, automaton) do
+    {_, {_, _, transitions }} = automaton                     # Get transitions from the automaton
+    {predicate, next_state} = transitions[state]              # TODO: Error Handling (for example when transition[n] doesn't exists)
+    if predicate.(c) do
+      next_state
+    else
+       {:error, -1, "Invalid transition from state #{state} on character '#{<<c>>}' (code #{c})"}
+    end
+  end
+
+  # ✔️ is_final_state(state, token) : cette fonction prend en paramètre un état state et un automate.
+  # Elle retourne true si l'état est final dans cet automate, et false sinon.
+  def is_final_state(state, token) do
+    {_, {_, [final_state], _}} = token
+    state == final_state
+  end
+
+  def recognized_from_state(state, text, {rec, len}, token) do
+
+    {end_state, final_rec, final_len} =
+      Enum.reduce(text, {state, rec, len}, fn char, {state, rec, len} ->
+        next = next_state(state, char, token)
+        {next, rec ++ [char], len + 1}
+      end)
+    
+    # end_state = Enum.reduce(text, state, fn text, state ->
+    #   next_state(state, text, token)
+    # end)
+  
+    if is_final_state(end_state, token) do
+      {:ok, final_rec, final_len}
+    else
+      {:error, final_rec, final_len}
+    end
+    
+    #is_final_state(end_state, token)                  # Return if the end is reached
+  end
+
+  # def recognized_from_state(state, text, {rec, len}, token) do
+  #   Enum.reduce(text, [], fn char, acc ->
+  #     IO.puts("Processing char: #{<<char>>}")  # print the character
+  #     acc ++ [char]                             # accumulate processed chars
+  #   end)
+  # end
+end
+
+# is_final_state & next_state (done)
+#IO.puts(Automaton.is_final_state(1, {0, [1], %{0 => {&(&1 == ?{), 1}}}))  # returns true
+#IO.puts(Automaton.next_state(0, ?{, {0, [1], %{0 => {&(&1 == ?{), 1}}}))  # returns 1
+#IO.puts(Automaton.next_state(1, ?=, {0, [2], %{0 => {&(&1 == ?=), 1}, 1 => {&(&1 == ?=), 2}}})) # returns 2
+
+Automaton.recognized_from_state(0, ~c"{", {[], 0}, Enum.at(tokens, 0))         # returns true
+Automaton.recognized_from_state(0, ~c"}", {[], 0}, Enum.at(tokens, 1))         # returns true
+Automaton.recognized_from_state(0, ~c"blabla", {[], 0}, Enum.at(tokens, 15))   # returns true
+Automaton.recognized_from_state(0, ~c"if", {[], 0}, Enum.at(tokens, 12))       # returns true
+
+Automaton.recognized_from_state(0, ~c"toto", {[], 0}, Enum.at(tokens, 15))       # returns true
+
+#Automaton.recognized_from_state(0, ~c"toto=3", {[], 0}, Enum.at(tokens, 15))
+
+# retourne le quadruplet {:ok, {:ident, "toto"}, 4, ~c"=3;"}
+#Automaton.recognized_from_state(0, ~c"toto=3", {[], 0}, Enum.at(tokens, 15))
+
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:ok, ~c"toto", 4}
+```
+
+#### Ajoutez de la documentation à votre code :
+
+Commentez chaque module, fonction et type en utilisant respectivement
+[`@moduledoc`](https://hexdocs.pm/elixir/writing-documentation.html), `@spec` +
+[`@doc`](https://hexdocs.pm/elixir/writing-documentation.html) +
+[Doctests](https://hexdocs.pm/elixir/docs-tests-and-with.html#doctests) et
+[`@typedoc`](https://hexdocs.pm/elixir/typespecs.html#a-simple-example).
+
+* Ajoutez des descriptions aux modules, types et fonctions publiques.
+* Pour les fonctions, décrivez également leurs paramètres et leurs valeurs de retour.
+
+##### Exemple
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+defmodule Foo do
+  @moduledoc ~S"""
+  This is the `Foo` module.
+
+  It ingests anything with the `Foo.bar/1` function to produce baz stamps.
+  """
+
+  @typedoc ~s"A baz stamp"
+  @type baz() :: :baz
+
+  @doc ~S"""
+  Ingest the given `input` to produce a baz stamp.
+
+  Returns `:baz`.
+
+  ## Examples
+
+  These are examples of doctests:
+
+      iex> Foo.bar("stamp")
+      :baz
+
+      iex> Foo.bar(0)
+      :baz
+
+      iex> Foo.bar(%{foo: :bar})
+      :baz
+  """
+  @spec bar(any()) :: baz()
+  def bar(_input), do: :baz
+end
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Retour théorique personnel
+
+* Expliquez et justifiez les choix d’implémentation concernant vos fonctions
+  pour cette dernière version du projet. Proposer des possibles ouvertures
+  afin de continuer ce projet, ou pour l’adapter à l’analyse d’un autre
+  langage. (~250 mots)
+* Faites un retour réflexif sur le langage Elixir (ses points forts / faibles, les
+  techniques propre à la programmation fonctionnelle, …). Comparez avec
+  des langages et paradigmes que vous connaissez déjà. (~250 mots)
+
+<!-- livebook:{"break_markdown":true} -->
+
+*Votre rapport ici*
