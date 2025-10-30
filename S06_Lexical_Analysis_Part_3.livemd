@@ -295,6 +295,9 @@ defmodule Automaton do
   # Elle retourne un triplet {:ok, rec_token, rest} où rec_token est le doublet {code, rec}  -
   # le code du token reconnu et la partie du texte reconnue rec - et rest est la partie du texte
   # qui suit la partie du texte reconnu. retourne :error si le texte n'est reconnu par aucun tokens.
+  #
+  # i) Le token reconnu est celui qui reconnaît le plus long mot.
+  # ii) Si deux tokens reconnaissent le même mot le gagnant est le premier qui a été testé.
   def fetch_recognized_token(text, tokens) do
       Enum.map(tokens, fn token ->
         recognized_from_state(0, text, {~c"", 0}, token)
@@ -303,38 +306,60 @@ defmodule Automaton do
         {:ok, _, _, _} -> true            # filter the successful tokens
         _ -> false
       end)
+      |> Enum.sort_by(fn {:ok, _, length, _rest} -> length end, &>=/2)
+      |> List.first()
       |> case do
        [] -> {:error}                     # return :error when result is empty, ...
        matches -> matches                 # ... otherwise the found results (=matches)
      end
   end
-  
+
+  def lex_analysis!(text, tokens) do
+    # TODO
+  end
 end
 
 #Automaton.is_final_state(1, Enum.at(tokens, 15))  # returns true ✔️
-# retourne le quadruplet {:ok, {:ident, "toto"}, 4, ~c"=3;"} :
+# retourne le quadruplet {:ok, {:ident, "toto"}, 4, ~c"=3;"}
 #Automaton.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(tokens,15)) #✔️
 #Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15)) # retourne :error ✔️
 #Automaton.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(tokens, 0)) #✔️
 #Automaton.recognized_from_state(0, ~c"{abc", {~c"", 0}, Enum.at(tokens, 0)) #✔️
 #Automaton.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(tokens,15)) #✔️
 #Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15)) #retourne :error ✔️ 
-#Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 0)) # ❌
-#Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 0))
+#Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 0)) # ✔️
+#Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 0)) ✔️
+#Automaton.recognized_from_state(0, ~c"#x=3;}", {~c"", 0}, Enum.at(tokens, 0)) # error ✔️
 
 #Automaton.fetch_recognized_token(~c"toto", tokens)
+# retourne le triplet {:ok, {:begin_block, "{"}, ~c"x=3;}"} car le texte commence par le token ~c"{", et ~c"x=3;}" est la partie du texte qui suit. 
+#Automaton.fetch_recognized_token(~c"{x=3;}", tokens)  # ✔️
 
-# retourne le triplet {:ok, {:begin_block, "{"}, ~c"x=3;}"} 
-# car le texte commence par le token ~c"{", et ~c"x=3;}" est la partie du texte qui suit.
+# retourne :error car le texte commence par le token ~c":" qui n'est reconnu par aucun des tokens. ✔️
+#Automaton.fetch_recognized_token(~c": x=3;", tokens)
 
-#Automaton.fetch_recognized_token(~c"{x=3;}", tokens) 
+# doit retourner le triplet {:ok, {:loop, "while"}, ~c" (x==3)"} et non le triplet {:ok, {:ident, "while"}, ~c" (x==3)"}.
+#Automaton.fetch_recognized_token(~c"while (x==3)", tokens) # ❌ - returns the first triplet ok, but then a second bad one
+#Automaton.fetch_recognized_token(~c"whilex (x==3)", tokens) # ❌ - returns the first triplet ok, but then a second bad one
+
 
 ```
 
 <!-- livebook:{"output":true} -->
 
 ```
-{:ok, {:begin_block, ~c"{"}, 1, ~c"x=3;}"}
+warning: variable "text" is unused (if the variable is not meant to be used, prefix it with an underscore)
+└─ /home/oli/Documents/uni/FALP/Serien/S06_Lexical_Analysis_Part_3.livemd#cell:7d777kf3fxnwsnl7:132: Automaton.lex_analysis!/2
+
+warning: variable "tokens" is unused (if the variable is not meant to be used, prefix it with an underscore)
+└─ /home/oli/Documents/uni/FALP/Serien/S06_Lexical_Analysis_Part_3.livemd#cell:7d777kf3fxnwsnl7:132: Automaton.lex_analysis!/2
+
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Automaton, <<70, 79, 82, 49, 0, 0, 29, ...>>, {:lex_analysis!, 2}}
 ```
 
 #### Ajoutez de la documentation à votre code :
