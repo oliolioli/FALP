@@ -250,7 +250,7 @@ defmodule Automaton do
     if predicate.(c) do
       next_state
     else
-       {:error, -1, "Invalid transition from state #{state} on character '#{<<c>>}' (code #{c})"}
+      -1                                                      # -1 means that there is no further next step
     end
   end
 
@@ -261,33 +261,29 @@ defmodule Automaton do
     state == final_state
   end
 
+  # ✔️ recognized_from_state retourne un quadruplet {:ok, rec_token, length, rest} 
+  # où rec_token est le doublet {code, rec} - le code du token et la partie du texte reconnue
+  # rec - length est la longueur de la partie du texte reconnue par le token et rest est la partie du texte qui suit.  
   def recognized_from_state(state, text, {rec, len}, token) do
+    {_end_state, rec, length} =
+    Enum.reduce_while(text, {state, rec, len}, fn char, {state, rec, len} ->
+      next = next_state(state, char, token)
 
-    {end_state, final_rec, final_len} =
-      Enum.reduce(text, {state, rec, len}, fn char, {state, rec, len} ->
-        next = next_state(state, char, token)
-        {next, rec ++ [char], len + 1}
-      end)
+      if next == -1 do
+        {:halt, {state, rec, len}}               # stop immediately
+      else
+        {:cont, {next, rec ++ [char], len + 1}}  # continue accumulating
+      end
+    end)
     
-    # end_state = Enum.reduce(text, state, fn text, state ->
-    #   next_state(state, text, token)
-    # end)
-  
-    if is_final_state(end_state, token) do
-      {:ok, final_rec, final_len}
+    rest = Enum.drop(text, length)            # return the rest of the unparsed text
+
+    if length == 0 do
+      {:error}
     else
-      {:error, final_rec, final_len}
+      {:ok, { elem(token, 0), rec }, length, rest}
     end
-    
-    #is_final_state(end_state, token)                  # Return if the end is reached
   end
-
-  # def recognized_from_state(state, text, {rec, len}, token) do
-  #   Enum.reduce(text, [], fn char, acc ->
-  #     IO.puts("Processing char: #{<<char>>}")  # print the character
-  #     acc ++ [char]                             # accumulate processed chars
-  #   end)
-  # end
 end
 
 # is_final_state & next_state (done)
@@ -295,14 +291,13 @@ end
 #IO.puts(Automaton.next_state(0, ?{, {0, [1], %{0 => {&(&1 == ?{), 1}}}))  # returns 1
 #IO.puts(Automaton.next_state(1, ?=, {0, [2], %{0 => {&(&1 == ?=), 1}, 1 => {&(&1 == ?=), 2}}})) # returns 2
 
-Automaton.recognized_from_state(0, ~c"{", {[], 0}, Enum.at(tokens, 0))         # returns true
-Automaton.recognized_from_state(0, ~c"}", {[], 0}, Enum.at(tokens, 1))         # returns true
-Automaton.recognized_from_state(0, ~c"blabla", {[], 0}, Enum.at(tokens, 15))   # returns true
-Automaton.recognized_from_state(0, ~c"if", {[], 0}, Enum.at(tokens, 12))       # returns true
-
-Automaton.recognized_from_state(0, ~c"toto", {[], 0}, Enum.at(tokens, 15))       # returns true
-
+# Automaton.recognized_from_state(0, ~c"toto", {[], 0}, Enum.at(tokens, 15))
+# Automaton.recognized_from_state(0, ~c"if", {[], 0}, Enum.at(tokens, 12))
+# Automaton.recognized_from_state(0, ~c"if", {[], 0}, Enum.at(tokens, 12))
+# Automaton.recognized_from_state(0, ~c"}", {[], 0}, Enum.at(tokens, 1))
 #Automaton.recognized_from_state(0, ~c"toto=3", {[], 0}, Enum.at(tokens, 15))
+Automaton.recognized_from_state(0, ~c"toto=3", {~c"", 0}, Enum.at(tokens, 15))
+Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15))
 
 # retourne le quadruplet {:ok, {:ident, "toto"}, 4, ~c"=3;"}
 #Automaton.recognized_from_state(0, ~c"toto=3", {[], 0}, Enum.at(tokens, 15))
@@ -312,7 +307,7 @@ Automaton.recognized_from_state(0, ~c"toto", {[], 0}, Enum.at(tokens, 15))      
 <!-- livebook:{"output":true} -->
 
 ```
-{:ok, ~c"toto", 4}
+{:error}
 ```
 
 #### Ajoutez de la documentation à votre code :
