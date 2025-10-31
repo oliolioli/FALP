@@ -1,0 +1,170 @@
+defmodule Token do
+  @type code :: atom()
+  @type recognized_token :: {Token.code(), String.t()}
+
+  defstruct [:code, :automaton]
+
+  @type t :: %Token{
+    code: code(),
+    automaton: Automaton.t()
+  }
+
+  # Constructor for Token
+  def new(code, automaton) do
+    #IO.inspect("Token #{code} constructed.")
+    %Token{
+      code: code,
+      automaton: automaton
+    }
+  end
+end
+
+defmodule Automaton do
+  @type valid_state :: integer()
+  @type state :: valid_state() | nil
+  @type predicate :: (char() -> boolean())
+  @type transitions :: %{valid_state() => [{predicate(), valid_state()}, ...]}
+
+  defstruct [:initial, :finals, :transitions]
+
+  @type t :: %Automaton{
+    initial: valid_state(),
+    finals: [valid_state(), ...],
+    transitions: transitions()
+  }
+
+  # Constructor for Automaton
+  def new(initial, finals, transitions) do
+  #IO.inspect("Automaton constructed.")
+  %Automaton{
+      initial: initial,
+      finals: finals,
+      transitions: transitions
+    }
+  end
+end
+
+tokens = [
+      Token.new(:begin_block, Automaton.new(0, [1], %{0 => [{&(&1 == ?{), 1}]})),
+      Token.new(:end_block,  Automaton.new(0, [1], %{0 => [{&(&1 == ?}), 1}]})),
+      Token.new(:begin_par,  Automaton.new(0, [1], %{0 => [{&(&1 == ?(), 1}]})),
+      Token.new(:end_par,    Automaton.new(0, [1], %{0 => [{&(&1 == ?)), 1}]})),
+      Token.new(:semicolon,  Automaton.new(0, [1], %{0 => [{&(&1 == ?;), 1}]})),
+      Token.new(:op_eg,      Automaton.new(0, [2], %{0 => [{&(&1 == ?=), 1}], 1 => [{&(&1 == ?=), 2}]})),
+      Token.new(:op_affect,  Automaton.new(0, [1], %{0 => [{&(&1 == ?=), 1}]})),
+      Token.new(:op_add,     Automaton.new(0, [1], %{0 => [{&(&1 == ?+), 1}]})),
+      Token.new(:op_minus,   Automaton.new(0, [1], %{0 => [{&(&1 == ?-), 1}]})),
+      Token.new(:op_mult,    Automaton.new(0, [1], %{0 => [{&(&1 == ?*), 1}]})),
+      Token.new(:op_div,     Automaton.new(0, [1], %{0 => [{&(&1 == ?/), 1}]})),
+      Token.new(:type_int, Automaton.new(0, [3], %{0 => [{&(&1 == ?i), 1}], 1 => [{&(&1 == ?n), 2}], 2 => [{&(&1 == ?t), 3}]})),
+      Token.new(:cond, Automaton.new(0, [2], %{0 => [{&(&1 == ?i), 1}], 1 => [{&(&1 == ?f), 2}]})),
+      Token.new(:loop, Automaton.new(0, [5], %{0 => [{&(&1 == ?w), 1}], 1 => [{&(&1 == ?h), 2}], 2 => [{&(&1 == ?i), 3}], 3 => [{&(&1 == ?l), 4}], 4 => [{&(&1 == ?e), 5}]})),
+      Token.new(:value_int, Automaton.new(0, [1], %{0 => [{&(&1 in ?0..?9), 1}], 1 => [{&(&1 in ?0..?9), 1}]})),
+      Token.new(:ident, Automaton.new(0, [1], %{0 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 == ?_), 1}], 1 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 in ?0..?9 or &1 == ?_), 1}]}))
+]
+
+defmodule Lexer do
+  # ✔️ next_state(state, c, automaton) prend en paramètre un état state, un caractère c et un automate.
+  # Elle retourne l'état d'arrivée de la transition partant de l'état et portant le caractère.
+  # Elle retourne -1 si la transition n'existe pas.
+  def next_state(state, c, automaton) do
+    
+    transitions = automaton.transitions
+    # {_, {_, [_final_state], transitions }} = automaton                   # get automatons transitions
+    
+    transitions = Map.get(transitions, state, [])
+    # {predicate, next_state} = Map.get(transitions, state, {nil, -1})     # if transition doesn't exist, set {nil, -1} for error handling
+    IO.inspect("Transition from state")
+    IO.inspect(transitions)
+
+    IO.inspect(<<c>>)
+    
+    for {predicate, next_state} <- transitions, predicate.(c) do
+      IO.inspect("Next state: #{next_state}")
+      next_state
+    end
+    # if predicate != nil and predicate.(c) do
+    #     next_state
+    #   else
+    #     -1                                              # -1 means that there is no further next step
+    # end
+  end
+
+  # ✔️ recognized_from_state retourne un quadruplet {:ok, rec_token, length, rest} 
+  # où rec_token est le doublet {code, rec} - le code du token et la partie du texte reconnue
+  # rec - length est la longueur de la partie du texte reconnue par le token et rest est la partie du texte qui suit.  
+  # TODO - Check: Cette fonction est "gloutonne", car elle reconnaît la plus grande partie possible de texte. 
+  def recognized_from_state(state, text, {rec, len}, token) do
+    {_, rec, length} =
+    Enum.reduce_while(text, {state, rec, len}, fn char, {state, rec, len} ->
+      # IO.inspect(text)
+      # IO.inspect(<<char>>)
+      # IO.inspect(token)
+      # IO.inspect(rec)
+      next = next_state(state, char, token.automaton)
+      IO.inspect(char)
+      # next = next_state(state, char, token)
+        
+      if next == [] do
+        {:halt, {state, rec, len}}               # stop immediately
+      else
+        {:cont, {next, rec ++ [char], len + 1}}  # continue accumulating
+      end
+    end)
+    rest = Enum.drop(text, length)            # return the rest of the unparsed text
+    
+    if length == 0 do                         # return :error nothing is parsed
+      {:error}
+    else
+      {:ok, { token.code, rec }, length, rest} 
+      # {:ok, { elem(token, 0), rec }, length, rest} 
+    end
+  end
+
+  
+  # fetch_recognized_token recherche quel est le token qui reconnaît le début du texte text 
+  # avec la liste des tokens du langage tokens.
+  # Elle retourne un triplet {:ok, rec_token, rest} où rec_token est le doublet {code, rec}  -
+  # le code du token reconnu et la partie du texte reconnue rec - et rest est la partie du texte
+  # qui suit la partie du texte reconnu. retourne :error si le texte n'est reconnu par aucun tokens.
+  #
+  # i) Le token reconnu est celui qui reconnaît le plus long mot.
+  # ii) Si deux tokens reconnaissent le même mot le gagnant est le premier qui a été testé.
+  def fetch_recognized_token(text, tokens) do
+      Enum.map(tokens, fn token ->
+        recognized_from_state(0, text, {~c"", 0}, token)
+        end)     
+      |> Enum.filter(fn
+        {:ok, _, _, _} -> true            # filter the successful tokens
+        _ -> false
+      end)
+      |> Enum.sort_by(fn {:ok, _, length, _rest} -> length end, &>=/2)
+      |> List.first()
+      |> case do
+       [] -> {:error}                     # return :error when result is empty, ...
+       matches -> matches                 # ... otherwise the found results (=matches)
+     end
+  end    
+end
+
+# retourne le quadruplet {:ok, {:ident, "toto"}, 4, ~c"=3;"}
+Lexer.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(tokens,15)) #✔️
+#Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15)) # retourne :error ✔️
+
+# Lexer.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(tokens, 0)) #✔️
+# Lexer.recognized_from_state(0, ~c"{abc", {~c"", 0}, Enum.at(tokens, 0)) #✔️
+# Lexer.recognized_from_state(0, ~c"}toto=3;", {~c"", 0}, Enum.at(tokens,1)) #✔️
+# Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 1)) #retourne :error ✔️ 
+# Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 0)) # ✔️
+# Lexer.recognized_from_state(0, ~c"#x=3;}", {~c"", 0}, Enum.at(tokens, 0)) # error ✔️
+
+#Lexer.fetch_recognized_token(~c"toto", tokens)
+# retourne le triplet {:ok, {:begin_block, "{"}, ~c"x=3;}"} car le texte commence par le token ~c"{", et ~c"x=3;}" est la partie du texte qui suit. 
+#Lexer.fetch_recognized_token(~c"{x=3;}", tokens)  # ✔️
+
+# retourne :error car le texte commence par le token ~c":" qui n'est reconnu par aucun des tokens. ✔️
+#Lexer.fetch_recognized_token(~c": x=3;", tokens)
+
+# doit retourner le triplet {:ok, {:loop, "while"}, ~c" (x==3)"} et non le triplet {:ok, {:ident, "while"}, ~c" (x==3)"}.
+#Lexer.fetch_recognized_token(~c"while (x==3)", tokens) # ❌ - returns the first triplet ok, but then a second bad one
+#Lexer.fetch_recognized_token(~c"whilex (x==3)", tokens) # ❌ - returns the first triplet ok, but then a second bad one
