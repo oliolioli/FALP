@@ -383,9 +383,13 @@ defmodule Lexer do
       end)
       |> Enum.sort_by(fn {:ok, _, length, _rest} -> length end, &>=/2) # sort tokens by length (desc)
       |> List.first()                     # take the first and thus longest token
+      |> (fn                             # when tuple is not nil: remove length & shorten tuple
+        nil -> nil
+        {a, {b1, b2}, _, d} -> {a, {b1, b2}, d}
+      end).()
       |> case do
        nil -> :error                      # return :error when result is empty ...
-       matches -> matches                 # ... otherwise found results (=matches)
+       matches -> matches                 # ... otherwise found results (=matches)     
      end
   end
 
@@ -406,28 +410,10 @@ defmodule Lexer do
 end
 
 
-# retourne le quadruplet {:ok, {:ident, "toto"}, 4, ~c"=3;"}
-#Lexer.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(tokens,15)) #✔️
-#Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15)) # retourne :error ✔️
-
-#Lexer.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(tokens, 0)) #✔️
-#Lexer.recognized_from_state(0, ~c"{abc", {~c"", 0}, Enum.at(tokens, 0)) #✔️
-#Lexer.recognized_from_state(0, ~c"}toto=3;", {~c"", 0}, Enum.at(tokens,1)) #✔️
-#Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 1)) #retourne :error ✔️ 
-#Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 0)) # ✔️
-#Lexer.recognized_from_state(0, ~c"#x=3;}", {~c"", 0}, Enum.at(tokens, 0)) # error ✔️
-
-#Lexer.fetch_recognized_token(~c"toto", tokens)
-# retourne le triplet {:ok, {:begin_block, "{"}, ~c"x=3;}"} car le texte commence par le token ~c"{", et ~c"x=3;}" est la partie du texte qui suit. 
-#Lexer.fetch_recognized_token(~c"{x=3;}", tokens)  # ✔️
-
-# retourne :error car le texte commence par le token ~c":" qui n'est reconnu par aucun des tokens. ✔️
-#Lexer.fetch_recognized_token(~c": x=3;", tokens)
-
 # doit retourner le triplet {:ok, {:loop, "while"}, ~c" (x==3)"} et non le triplet {:ok, {:ident, "while"}, ~c" (x==3)"}.
-#Lexer.fetch_recog nized_token(~c"while (x==3)", tokens) # ✔️
+Lexer.fetch_recognized_token(~c"while (x==3)", tokens) # ✔️
 
-#Lexer.fetch_recognized_token(~c"whilex (x==3)", tokens) # ✔️
+Lexer.fetch_recognized_token(~c"whilex (x==3)", tokens) # ✔️
 ```
 
 ```elixir
@@ -438,7 +424,8 @@ defmodule LexerDoctest do
   Module 'LexerDoctest' tests Lexer functions thoroughly.
   """
 
-  def tokens do # It's necessary to expose tokens via function as doctest has special needs.
+  # It's necessary to expose tokens via function as doctest has special needs.
+  def tokens do
     [
     # Brackets / delimiters
     Token.new(:begin_block, Automaton.new(0, [1], %{0 => [{&(&1 == ?{), 1}]})),
@@ -469,19 +456,55 @@ defmodule LexerDoctest do
   @moduledoc ~S"""
   Doctests for Lexer module:
 
+    # Recognise simple ident
       iex> Lexer.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(LexerDoctest.tokens(),15))
       {:ok, {:ident, "toto"}, 4, ~c"=3;"}
 
+    # Recognise an error if ident block contains unallowed chars
       iex> Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(LexerDoctest.tokens(),15))
       :error
 
+    # Recognise proper begin block
       iex> Lexer.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(LexerDoctest.tokens(),0))
       {:ok, {:begin_block, "{"}, 1, []}
 
+    # Has to recognise {:ok, {:loop, "while"}, ~c" (x==3)"} and not {:ok, {:ident, "while"}, ~c" (x==3)"}.
       iex> Lexer.fetch_recognized_token(~c"while (x==3)", LexerDoctest.tokens())
-      {:ok, {:loop, "while"}, 5, ~c" (x==3)"}
+      {:ok, {:loop, "while"}, ~c" (x==3)"}
+    
+    # Recognition of unproper begin block
+      iex> Lexer.recognized_from_state(0, ~c"{abc", {~c"", 0}, Enum.at(LexerDoctest.tokens(),0))
+      {:ok, {:begin_block, "{"}, 1, ~c"abc"}
 
-      iex> 
+    # Recognition of unproper end block
+      iex> Lexer.recognized_from_state(0, ~c"}toto=3;", {~c"", 0}, Enum.at(LexerDoctest.tokens(),1))
+      {:ok, {:end_block, "}"}, 1, ~c"toto=3;"}
+
+    # Recognise unallowed chars
+      iex> Lexer.recognized_from_state(0, ~c"#abc", {~c"", 0}, Enum.at(LexerDoctest.tokens(),0))
+      :error
+
+    # Fetch proper ident token
+      iex> Lexer.fetch_recognized_token(~c"toto", LexerDoctest.tokens())
+      {:ok, {:ident, "toto"}, []}
+
+    # Fetch begin block
+      iex> Lexer.fetch_recognized_token(~c"{x=3;}", LexerDoctest.tokens())
+      {:ok, {:begin_block, "{"}, ~c"x=3;}"}
+
+    # Throw an error when fetching begins with ":"
+      iex> Lexer.fetch_recognized_token(~c": x=3;", LexerDoctest.tokens())
+      :error
+
+    # Test order of processing the tokens by fetching triplet {:ok, {:loop, "while"}, ~c" (x==3)"} and
+    # not triplet {:ok, {:ident, "while"}, ~c" (x==3)"}
+      iex> Lexer.fetch_recognized_token(~c"while (x==3)", LexerDoctest.tokens())
+      {:ok, {:loop, "while"}, ~c" (x==3)"}
+
+    # Whereas a longer word is treated first
+      iex> Lexer.fetch_recognized_token(~c"whileX (x==3)", LexerDoctest.tokens())
+      {:ok, {:ident, "whileX"}, ~c" (x==3)"}
+    
   """
 end
 ```
