@@ -311,30 +311,18 @@ defmodule Lexer do
      end
   end
 
+  def lex_analysis!("", _), do: []
   def lex_analysis!(text, tokens) do
-    text = String.to_charlist(text)
-    
-    {_,{ident,rec},recognized_length,rest} = fetch_recognized_token(text, tokens)
-    # ident 
-
-    {_,{ident,rec},recognized_length,rest} = fetch_recognized_token(rest, tokens)
-    # op_eg
-
-    {_,{ident,rec},recognized_length,rest} = fetch_recognized_token(rest, tokens)
-    # value_int
-
-    {_,{ident,rec},recognized_length,rest} = fetch_recognized_token(rest, tokens)
-    # semicolon
-    
-    {ident, rec}
-
-
+    text = String.to_charlist(String.trim(text))
+    {_,{ident, rec}, _, rest} = fetch_recognized_token(text, tokens) # fetch
+    [ident, List.to_string(rec) | lex_analysis!(List.to_string(rest), tokens)] # and recurse rest
   end
 end
 
 #Lexer.fetch_recognized_token(~c"while (x==3)", tokens)
 
 Lexer.lex_analysis!("toto=3;", tokens)
+Lexer.lex_analysis!(" int x = y;", tokens) # blanks and stuff
 #lex_analysis!("toto=3;", lt) # retourne la liste 
 #[ident: "toto", op_affect: "=", value_int: "3", semicolon: ";"]
 ```
