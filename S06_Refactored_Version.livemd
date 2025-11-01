@@ -219,7 +219,6 @@ defmodule Automaton do
 
   # Constructor for Automaton
   def new(initial, finals, transitions) do
-  #IO.inspect("Automaton constructed.")
   %Automaton{
       initial: initial,
       finals: finals,
@@ -252,14 +251,10 @@ defmodule Lexer do
   # Elle retourne l'état d'arrivée de la transition partant de l'état et portant le caractère.
   # Elle retourne -1 si la transition n'existe pas.
   def next_state(state, c, automaton) do
-    transitions = automaton.transitions                                 # get automatons transitions          
-    
-    transitions = Map.get(transitions, state, [])
-    IO.inspect("Transition from state:")
-    IO.inspect(transitions)
-    
+    transitions = Map.get(automaton.transitions , state, [])         # get transitions of automaton
+
+    # list comprehension, filtered: only keep tuples if predicate.(c) returns true
     for {predicate, next_state} <- transitions, predicate.(c) do
-      IO.inspect("Next state: #{next_state}")
       next_state
     end
   end
@@ -270,28 +265,24 @@ defmodule Lexer do
   # TODO - Check: Cette fonction est "gloutonne", car elle reconnaît la plus grande partie possible de texte. 
   def recognized_from_state(state, text, {rec, len}, token) do
     {_, rec, length} =
-    Enum.reduce_while(text, {state, rec, len}, fn char, {state, rec, len} ->
-      # IO.inspect(text)
-      # IO.inspect(<<char>>)
-      # IO.inspect(token)
-      # IO.inspect(rec)
-      next = next_state(state, char, token.automaton)
-
-      IO.inspect(<<char>>)
-        
-      if next == [] do
-        {:halt, {state, rec, len}}                   # stop immediately
-      else
-        {:cont, {hd(next), rec ++ [char], len + 1}}  # continue accumulating
-      end
-    end)
-    rest = Enum.drop(text, length)                   # return the rest of the unparsed text
+      Enum.reduce_while(text, {state, rec, len}, fn char, {state, rec, len} ->
+        next = next_state(state, char, token.automaton) # get next state 
+          
+        if next == [] do
+          #IO.inspect("No next state found -> halt.")
+          {:halt, {state, rec, len}}                    # stop immediately when next is empty...
+        else
+          #IO.inspect("Process char #{<<char>>} -> next state: #{hd(next)}")
+          {:cont, {hd(next), rec ++ [char], len + 1}}   # ... otherwise continue accumulating
+        end
+      end)
     
-    if length == 0 do                                # return :error nothing is parsed
+    rest = Enum.drop(text, length)                      # return the rest of the unparsed text
+    
+    if length == 0 do                                   # return :error if nothing is parsed
       :error
     else
-      {:ok, { token.code, rec }, length, rest} 
-      # {:ok, { elem(token, 0), rec }, length, rest} 
+      {:ok, { token.code, rec }, length, rest}          # otherwise return resulting quadruple
     end
   end
 
@@ -305,47 +296,47 @@ defmodule Lexer do
   # i) Le token reconnu est celui qui reconnaît le plus long mot.
   # ii) Si deux tokens reconnaissent le même mot le gagnant est le premier qui a été testé.
   def fetch_recognized_token(text, tokens) do
-      Enum.map(tokens, fn token ->
+      Enum.map(tokens, fn token ->        # invoke recognized_from_state on every token 
         recognized_from_state(0, text, {~c"", 0}, token)
-        end)     
+        end)
       |> Enum.filter(fn
-        {:ok, _, _, _} -> true            # filter the successful tokens
+        {:ok, _, _, _} -> true            # filter out only successful tokens
         _ -> false
       end)
       |> Enum.sort_by(fn {:ok, _, length, _rest} -> length end, &>=/2) # sort tokens by length (desc)
       |> List.first()                     # take the first and thus longest token
       |> case do
-       nil -> :error                      # return :error when result is empty, ...
-       matches -> matches                 # ... otherwise the found results (=matches)
+       nil -> :error                      # return :error when result is empty ...
+       matches -> matches                 # ... otherwise found results (=matches)
      end
-  end    
+  end
+
+  def lex_analysis!(text, tokens) do
+    text = String.to_charlist(text)
+    
+    {_,{ident,rec},recognized_length,rest} = fetch_recognized_token(text, tokens)
+    # ident 
+
+    {_,{ident,rec},recognized_length,rest} = fetch_recognized_token(rest, tokens)
+    # op_eg
+
+    {_,{ident,rec},recognized_length,rest} = fetch_recognized_token(rest, tokens)
+    # value_int
+
+    {_,{ident,rec},recognized_length,rest} = fetch_recognized_token(rest, tokens)
+    # semicolon
+    
+    {ident, rec}
+
+
+  end
 end
 
-# retourne le quadruplet {:ok, {:ident, "toto"}, 4, ~c"=3;"}
-Lexer.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(tokens,15)) #✔️
-#Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15)) # retourne :error ✔️
+#Lexer.fetch_recognized_token(~c"while (x==3)", tokens)
 
-#Lexer.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(tokens, 0)) #✔️
-#Lexer.recognized_from_state(0, ~c"{abc", {~c"", 0}, Enum.at(tokens, 0)) #✔️
-#Lexer.recognized_from_state(0, ~c"}toto=3;", {~c"", 0}, Enum.at(tokens,1)) #✔️
-#Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 1)) #retourne :error ✔️ 
-#Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 0)) # ✔️
-#Lexer.recognized_from_state(0, ~c"#x=3;}", {~c"", 0}, Enum.at(tokens, 0)) # error ✔️
-
-#Lexer.fetch_recognized_token(~c"toto", tokens)
-# retourne le triplet {:ok, {:begin_block, "{"}, ~c"x=3;}"} car le texte commence par le token ~c"{", et ~c"x=3;}" est la partie du texte qui suit. 
-#Lexer.fetch_recognized_token(~c"{x=3;}", tokens)  # ✔️
-
-# retourne :error car le texte commence par le token ~c":" qui n'est reconnu par aucun des tokens. ✔️
-#Lexer.fetch_recognized_token(~c": x=3;", tokens)
-
-# doit retourner le triplet {:ok, {:loop, "while"}, ~c" (x==3)"} et non le triplet {:ok, {:ident, "while"}, ~c" (x==3)"}.
-#Lexer.fetch_recognized_token(~c"while (x==3)", tokens) # ❌ - returns the first triplet ok, but then a second bad one
-#Lexer.fetch_recognized_token(~c"whilex (x==3)", tokens) # ❌ - returns the first triplet ok, but then a second bad one
-
-lex_analysis!("toto=3;", lt) retourne la liste
-
-[ident: "toto", op_affect: "=", value_int: "3", semicolon: ";"]
+Lexer.lex_analysis!("toto=3;", tokens)
+#lex_analysis!("toto=3;", lt) # retourne la liste 
+#[ident: "toto", op_affect: "=", value_int: "3", semicolon: ";"]
 ```
 
 #### Ajoutez de la documentation à votre code :
