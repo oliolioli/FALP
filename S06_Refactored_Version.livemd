@@ -182,17 +182,32 @@ exemple :
 
 ```elixir
 defmodule Token do
+  @moduledoc """
+  Represents a 'Token' struct, ideal for feeding a lexer.
+  
+  Token.new/2 creates a new token
+  """
+
+  @typedoc "An atom representing the type of a token"
   @type code :: atom()
+  
+  @typedoc "A token that has been recognized by the lexer."
   @type recognized_token :: {Token.code(), String.t()}
 
+  @enforce_keys [:code, :automaton]
   defstruct [:code, :automaton]
 
+  @typedoc "The 'Token' struct, representing a lexical token."
   @type t :: %Token{
     code: code(),
     automaton: Automaton.t()
   }
 
-  def new(code, automaton) do                 # Constructor for Token
+  @doc """
+  Constructor to create a new 'Token'. Entails a code and an 'Automaton'.
+  """
+  @spec new(code(), Automaton.t()) :: t()
+  def new(code, automaton) do
     %Token{
       code: code,
       automaton: automaton
@@ -201,20 +216,39 @@ defmodule Token do
 end
 
 defmodule Automaton do
+  @moduledoc """
+  Represents an 'Automaton' struct, to be included in a 'Token' struct.
+  
+  Automaton.new/3 creates a new 'Automaton' with initial and final state(s) plus transitions.
+  """
+  
+  @typedoc "An integer representing a valid automaton state."
   @type valid_state :: integer()
+
+  @typedoc "A state that can be valid or nil."
   @type state :: valid_state() | nil
+
+  @typedoc "A function taking a character and returning a boolean."
   @type predicate :: (char() -> boolean())
+
+  @typedoc "A map of states to non-empty lists of {predicate, target_state} tuples."
   @type transitions :: %{valid_state() => [{predicate(), valid_state()}, ...]}
 
+  @enforce_keys [:initial, :finals, :transitions]
   defstruct [:initial, :finals, :transitions]
 
+  @typedoc "Create a new automaton with initial, final state(s), and transitions."
   @type t :: %Automaton{
     initial: valid_state(),
     finals: [valid_state(), ...],
     transitions: transitions()
   }
 
-  def new(initial, finals, transitions) do    # Constructor for Automaton
+  @doc """
+  Constructor to create a new 'Automaton'. Entails an initial state, final state(s) and transitions.
+  """
+  @spec new(initial :: valid_state(), finals :: [valid_state(), ...], transitions :: transitions()) :: t()
+  def new(initial, finals, transitions) do
   %Automaton{
       initial: initial,
       finals: finals,
@@ -224,11 +258,16 @@ defmodule Automaton do
 end
 
 tokens = [
+      # Defines the list of tokens recognized by the lexer.
+      #
+      # - Brackets / delimiters
       Token.new(:begin_block, Automaton.new(0, [1], %{0 => [{&(&1 == ?{), 1}]})),
       Token.new(:end_block,   Automaton.new(0, [1], %{0 => [{&(&1 == ?}), 1}]})),
       Token.new(:begin_par,   Automaton.new(0, [1], %{0 => [{&(&1 == ?(), 1}]})),
       Token.new(:end_par,     Automaton.new(0, [1], %{0 => [{&(&1 == ?)), 1}]})),
       Token.new(:semicolon,   Automaton.new(0, [1], %{0 => [{&(&1 == ?;), 1}]})),
+
+      # - Operators
       Token.new(:op_eg,       Automaton.new(0, [2], %{0 => [{&(&1 == ?=), 1}], 
                                                       1 => [{&(&1 == ?=), 2}]})),
       Token.new(:op_affect,   Automaton.new(0, [1], %{0 => [{&(&1 == ?=), 1}]})),
@@ -236,6 +275,8 @@ tokens = [
       Token.new(:op_minus,    Automaton.new(0, [1], %{0 => [{&(&1 == ?-), 1}]})),
       Token.new(:op_mult,     Automaton.new(0, [1], %{0 => [{&(&1 == ?*), 1}]})),
       Token.new(:op_div,      Automaton.new(0, [1], %{0 => [{&(&1 == ?/), 1}]})),
+
+      # - Keywords
       Token.new(:type_int,    Automaton.new(0, [3], %{0 => [{&(&1 == ?i), 1}], 
                                                       1 => [{&(&1 == ?n), 2}], 
                                                       2 => [{&(&1 == ?t), 3}]})),
@@ -246,6 +287,7 @@ tokens = [
                                                       2 => [{&(&1 == ?i), 3}], 
                                                       3 => [{&(&1 == ?l), 4}], 
                                                       4 => [{&(&1 == ?e), 5}]})),
+      # - Literals / identifiers
       Token.new(:value_int,   Automaton.new(0, [1], %{0 => [{&(&1 in ?0..?9), 1}], 
                                                       1 => [{&(&1 in ?0..?9), 1}]})),
       Token.new(:ident,       Automaton.new(0, [1], %{0 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 == ?_), 1}], 
@@ -253,11 +295,39 @@ tokens = [
 ]
 
 defmodule Lexer do
-  # ✔️ next_state(state, c, automaton) prend en paramètre un état state, un caractère c et un automate.
-  # Elle retourne l'état d'arrivée de la transition partant de l'état et portant le caractère.
-  # Elle retourne -1 si la transition n'existe pas.
+  @moduledoc """
+  A lexical analyzer (lexer) for tokenizing text based on a set of defined tokens.
+
+  This module provides functions to recognize tokens in a text using 
+  finite automata associated with each token. It supports:
+
+    * 'next_state/3' — computes the next state of an automaton given 
+      a current state and a character.
+    * 'recognized_from_state/4' — attempts to recognize a token from 
+      a given starting state and input text. Returns a quadruple 
+      '{:ok, {token_code, recognized_chars}, length, rest}' or ':error'.
+    * 'fetch_recognized_token/2' — scans a text against a list of tokens 
+      and returns the token that recognizes the **longest matching prefix**.
+      Returns ':error' if no token matches.
+    * 'lex_analysis!/2' — recursively tokenizes an entire input string 
+      into a flat list of '{token_code, string}' pairs.
+
+  ## Behavior Notes
+
+    * Recognition is **greedy**: the lexer matches the longest possible sequence.
+    * If multiple tokens match the same length, the first one in the list wins.
+    * Input is converted to a charlist and trimmed before analysis.
+  """
+
+  @doc """
+  Computes the next states of an automaton given a current 'state' and input character 'c'.
+  
+  Returns a list of states reachable from 'state' via transitions whose predicate
+  matches 'c'. Returns an empty list if no transitions exist for the given character.
+  """
+  @spec next_state(state :: Automaton.valid_state(), c :: char(), automaton :: Automaton.t()) :: [Automaton.valid_state()]
   def next_state(state, c, automaton) do
-    transitions = Map.get(automaton.transitions , state, [])         # get transitions of automaton
+    transitions = Map.get(automaton.transitions , state, []) # get transitions of automaton
 
     # list comprehension, filtered: only keep tuples if predicate.(c) returns true
     for {predicate, next_state} <- transitions, predicate.(c) do
@@ -265,17 +335,26 @@ defmodule Lexer do
     end
   end
 
-  # ✔️ recognized_from_state retourne un quadruplet {:ok, rec_token, length, rest} 
-  # où rec_token est le doublet {code, rec} - le code du token et la partie du texte reconnue
-  # rec - length est la longueur de la partie du texte reconnue par le token et rest est la partie du texte qui suit.  
-  # TODO - Check: Cette fonction est "gloutonne", car elle reconnaît la plus grande partie possible de texte. 
+  @doc """
+  Attempts to recognize a token from the given 'state' and 'text' using the token's automaton.
+  
+  Returns a quadruple '{:ok, {token_code, recognized_chars}, length, rest}' where:
+  
+    * 'token_code' — the code of the recognized token
+    * 'recognized_chars' — the list of characters matched
+    * 'length' — the number of characters consumed
+    * 'rest' — the remaining unparsed text
+  
+  Returns ':error' if no characters are matched.
+  """
+  @spec recognized_from_state(state :: Automaton.valid_state(),text :: [char()],acc :: {list(char()), non_neg_integer()},token :: Token.t()) ::
+        {:ok, {Token.code(), [char()]}, non_neg_integer(), [char()]} | :error
   def recognized_from_state(state, text, {rec, len}, token) do
     {_, rec, length} =
       Enum.reduce_while(text, {state, rec, len}, fn char, {state, rec, len} ->
         next = next_state(state, char, token.automaton) # get next state 
           
         if next == [] do
-          #IO.inspect("No next state found -> halt.")
           {:halt, {state, rec, len}}                    # stop immediately when next is empty...
         else
           #IO.inspect("Process char #{<<char>>} -> next state: #{hd(next)}")
@@ -293,14 +372,22 @@ defmodule Lexer do
   end
 
   
-  # fetch_recognized_token recherche quel est le token qui reconnaît le début du texte text 
-  # avec la liste des tokens du langage tokens.
-  # Elle retourne un triplet {:ok, rec_token, rest} où rec_token est le doublet {code, rec}  -
-  # le code du token reconnu et la partie du texte reconnue rec - et rest est la partie du texte
-  # qui suit la partie du texte reconnu. retourne :error si le texte n'est reconnu par aucun tokens.
-  #
-  # i) Le token reconnu est celui qui reconnaît le plus long mot.
-  # ii) Si deux tokens reconnaissent le même mot le gagnant est le premier qui a été testé.
+  @doc """
+  Finds the token from the given list of 'tokens' that recognizes the longest
+  prefix of 'text'.  
+  
+  Returns '{:ok, {token_code, recognized_chars}, length, rest}' if a token is recognized,
+  or ':error' if no token matches.
+  
+  ## Behavior
+  
+    * Applies `recognized_from_state/4` to every token starting from state 0.
+    * Filters out unsuccessful recognitions.
+    * Chooses the token that recognizes the **longest match**.
+    * If multiple tokens match the same length, the first token in the list wins.
+  """
+  @spec fetch_recognized_token(text :: [char()],tokens :: [Token.t()]) ::
+        {:ok, {Token.code(), [char()]}, non_neg_integer(), [char()]} | :error
   def fetch_recognized_token(text, tokens) do
       Enum.map(tokens, fn token ->        # invoke recognized_from_state on every token 
         recognized_from_state(0, text, {~c"", 0}, token)
@@ -317,6 +404,16 @@ defmodule Lexer do
      end
   end
 
+  @doc """
+  Recursively tokenizes the input 'text' using the list of 'tokens'.
+  
+  Converts the input string to a charlist, repeatedly finds the longest
+  matching token at the beginning of the text, and returns a flat list
+  of token codes and their recognized string values.
+
+  Returns an empty list for empty input.
+  """
+  @spec lex_analysis!(text :: String.t(), tokens :: [Token.t()]) :: [Token.code() | String.t()]
   def lex_analysis!("", _), do: []
   def lex_analysis!(text, tokens) do
     text = String.to_charlist(String.trim(text))
@@ -324,6 +421,7 @@ defmodule Lexer do
     [ident, List.to_string(rec) | lex_analysis!(List.to_string(rest), tokens)] # and recurse rest
   end
 end
+
 
 #Lexer.fetch_recognized_token(~c"while (x==3)", tokens)
 
