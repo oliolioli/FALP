@@ -181,6 +181,11 @@ exemple :
     * Exemple : `trim(~c" int x = y;")` retourne `~c"int x = y;"`.
 
 ```elixir
+# Disclaimer: Parts of this code and its documentation were scaffolded and challenged 
+# with the help of ChatGPT.
+# 
+# Special thanks also to Alonso for his extensive guidance and help.
+
 defmodule Token do
   @moduledoc """
   Represents a 'Token' struct, ideal for feeding a lexer.
@@ -259,7 +264,6 @@ end
 
 tokens = [
       # Defines the list of tokens recognized by the lexer.
-      #
       # - Brackets / delimiters
       Token.new(:begin_block, Automaton.new(0, [1], %{0 => [{&(&1 == ?{), 1}]})),
       Token.new(:end_block,   Automaton.new(0, [1], %{0 => [{&(&1 == ?}), 1}]})),
@@ -301,22 +305,10 @@ defmodule Lexer do
   This module provides functions to recognize tokens in a text using 
   finite automata associated with each token. It supports:
 
-    * 'next_state/3' — computes the next state of an automaton given 
-      a current state and a character.
-    * 'recognized_from_state/4' — attempts to recognize a token from 
-      a given starting state and input text. Returns a quadruple 
-      '{:ok, {token_code, recognized_chars}, length, rest}' or ':error'.
-    * 'fetch_recognized_token/2' — scans a text against a list of tokens 
-      and returns the token that recognizes the **longest matching prefix**.
-      Returns ':error' if no token matches.
-    * 'lex_analysis!/2' — recursively tokenizes an entire input string 
-      into a flat list of '{token_code, string}' pairs.
-
-  ## Behavior Notes
-
-    * Recognition is **greedy**: the lexer matches the longest possible sequence.
-    * If multiple tokens match the same length, the first one in the list wins.
-    * Input is converted to a charlist and trimmed before analysis.
+    * 'next_state/3'
+    * 'recognized_from_state/4'
+    * 'fetch_recognized_token/2'
+    * 'lex_analysis!/2'
   """
 
   @doc """
@@ -345,7 +337,7 @@ defmodule Lexer do
     * 'length' — the number of characters consumed
     * 'rest' — the remaining unparsed text
   
-  Returns ':error' if no characters are matched.
+  Otherwise it returns ':error' if no characters are matched.
   """
   @spec recognized_from_state(state :: Automaton.valid_state(),text :: [char()],acc :: {list(char()), non_neg_integer()},token :: Token.t()) ::
         {:ok, {Token.code(), [char()]}, non_neg_integer(), [char()]} | :error
@@ -367,7 +359,7 @@ defmodule Lexer do
     if length == 0 do                                   # return :error if nothing is parsed
       :error
     else
-      {:ok, { token.code, rec }, length, rest}          # otherwise return resulting quadruple
+      {:ok, { token.code, List.to_string(rec) }, length, rest}          # otherwise return resulting quadruple
     end
   end
 
@@ -378,13 +370,6 @@ defmodule Lexer do
   
   Returns '{:ok, {token_code, recognized_chars}, length, rest}' if a token is recognized,
   or ':error' if no token matches.
-  
-  ## Behavior
-  
-    * Applies `recognized_from_state/4` to every token starting from state 0.
-    * Filters out unsuccessful recognitions.
-    * Chooses the token that recognizes the **longest match**.
-    * If multiple tokens match the same length, the first token in the list wins.
   """
   @spec fetch_recognized_token(text :: [char()],tokens :: [Token.t()]) ::
         {:ok, {Token.code(), [char()]}, non_neg_integer(), [char()]} | :error
@@ -410,8 +395,6 @@ defmodule Lexer do
   Converts the input string to a charlist, repeatedly finds the longest
   matching token at the beginning of the text, and returns a flat list
   of token codes and their recognized string values.
-
-  Returns an empty list for empty input.
   """
   @spec lex_analysis!(text :: String.t(), tokens :: [Token.t()]) :: [Token.code() | String.t()]
   def lex_analysis!("", _), do: []
@@ -423,12 +406,82 @@ defmodule Lexer do
 end
 
 
-#Lexer.fetch_recognized_token(~c"while (x==3)", tokens)
+# retourne le quadruplet {:ok, {:ident, "toto"}, 4, ~c"=3;"}
+#Lexer.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(tokens,15)) #✔️
+#Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15)) # retourne :error ✔️
 
-Lexer.lex_analysis!("toto=3;", tokens)
-#Lexer.lex_analysis!(" int x = y;", tokens) # test case blanks and stuff
-#lex_analysis!("toto=3;", lt) # retourne la liste 
-#[ident: "toto", op_affect: "=", value_int: "3", semicolon: ";"]
+Lexer.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(tokens, 0)) #✔️
+#Lexer.recognized_from_state(0, ~c"{abc", {~c"", 0}, Enum.at(tokens, 0)) #✔️
+#Lexer.recognized_from_state(0, ~c"}toto=3;", {~c"", 0}, Enum.at(tokens,1)) #✔️
+#Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 1)) #retourne :error ✔️ 
+#Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 0)) # ✔️
+#Lexer.recognized_from_state(0, ~c"#x=3;}", {~c"", 0}, Enum.at(tokens, 0)) # error ✔️
+
+#Lexer.fetch_recognized_token(~c"toto", tokens)
+# retourne le triplet {:ok, {:begin_block, "{"}, ~c"x=3;}"} car le texte commence par le token ~c"{", et ~c"x=3;}" est la partie du texte qui suit. 
+#Lexer.fetch_recognized_token(~c"{x=3;}", tokens)  # ✔️
+
+# retourne :error car le texte commence par le token ~c":" qui n'est reconnu par aucun des tokens. ✔️
+#Lexer.fetch_recognized_token(~c": x=3;", tokens)
+
+# doit retourner le triplet {:ok, {:loop, "while"}, ~c" (x==3)"} et non le triplet {:ok, {:ident, "while"}, ~c" (x==3)"}.
+#Lexer.fetch_recog nized_token(~c"while (x==3)", tokens) # ✔️
+
+#Lexer.fetch_recognized_token(~c"whilex (x==3)", tokens) # ✔️
+```
+
+```elixir
+defmodule LexerDoctest do
+  @moduledoc ~S"""
+  Module 'LexerDoctest' tests Lexer functions thoroughly.
+  """
+
+  def tokens do # It's necessary to expose tokens via function as doctest has special needs.
+    [
+    # Brackets / delimiters
+    Token.new(:begin_block, Automaton.new(0, [1], %{0 => [{&(&1 == ?{), 1}]})),
+    Token.new(:end_block,   Automaton.new(0, [1], %{0 => [{&(&1 == ?}), 1}]})),
+    Token.new(:begin_par,   Automaton.new(0, [1], %{0 => [{&(&1 == ?(), 1}]})),
+    Token.new(:end_par,     Automaton.new(0, [1], %{0 => [{&(&1 == ?)), 1}]})),
+    Token.new(:semicolon,   Automaton.new(0, [1], %{0 => [{&(&1 == ?;), 1}]})),
+
+    # Operators
+    Token.new(:op_eg,       Automaton.new(0, [2], %{0 => [{&(&1 == ?=), 1}], 1 => [{&(&1 == ?=), 2}]})),
+    Token.new(:op_affect,   Automaton.new(0, [1], %{0 => [{&(&1 == ?=), 1}]})),
+    Token.new(:op_add,      Automaton.new(0, [1], %{0 => [{&(&1 == ?+), 1}]})),
+    Token.new(:op_minus,    Automaton.new(0, [1], %{0 => [{&(&1 == ?-), 1}]})),
+    Token.new(:op_mult,     Automaton.new(0, [1], %{0 => [{&(&1 == ?*), 1}]})),
+    Token.new(:op_div,      Automaton.new(0, [1], %{0 => [{&(&1 == ?/), 1}]})),
+
+    # Keywords
+    Token.new(:type_int,    Automaton.new(0, [3], %{0 => [{&(&1 == ?i), 1}], 1 => [{&(&1 == ?n), 2}], 2 => [{&(&1 == ?t), 3}]})),
+    Token.new(:cond,        Automaton.new(0, [2], %{0 => [{&(&1 == ?i), 1}], 1 => [{&(&1 == ?f), 2}]})),
+    Token.new(:loop,        Automaton.new(0, [5], %{0 => [{&(&1 == ?w), 1}], 1 => [{&(&1 == ?h), 2}], 2 => [{&(&1 == ?i), 3}], 3 => [{&(&1 == ?l), 4}], 4 => [{&(&1 == ?e), 5}]})),
+
+    # Literals / identifiers
+    Token.new(:value_int,   Automaton.new(0, [1], %{0 => [{&(&1 in ?0..?9), 1}], 1 => [{&(&1 in ?0..?9), 1}]})),
+    Token.new(:ident,       Automaton.new(0, [1], %{0 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 == ?_), 1}], 1 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 in ?0..?9 or &1 == ?_), 1}]}))
+    ] end
+  
+
+  @doc ~S"""
+  Runs small lexer examples.
+
+  ## Examples
+      iex> Lexer.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(LexerDoctest.tokens(),15))
+
+      iex> Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(LexerDoctest.tokens(),15))
+      :error
+
+      iex> Lexer.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(LexerDoctest.tokens(),0))
+      {:ok, {:begin_block, "{"}, 1, []}
+    
+      iex> Lexer.fetch_recognized_token(~c"while (x==3)", LexerDoctest.tokens())
+      {:ok, {:loop, "while"}, 5, ~c" (x==3)"}
+  """
+  def bar(_input), do: :baz
+end
+
 ```
 
 #### Ajoutez de la documentation à votre code :
