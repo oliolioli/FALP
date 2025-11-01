@@ -410,7 +410,7 @@ end
 #Lexer.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(tokens,15)) #✔️
 #Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15)) # retourne :error ✔️
 
-Lexer.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(tokens, 0)) #✔️
+#Lexer.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(tokens, 0)) #✔️
 #Lexer.recognized_from_state(0, ~c"{abc", {~c"", 0}, Enum.at(tokens, 0)) #✔️
 #Lexer.recognized_from_state(0, ~c"}toto=3;", {~c"", 0}, Enum.at(tokens,1)) #✔️
 #Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 1)) #retourne :error ✔️ 
@@ -431,6 +431,8 @@ Lexer.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(tokens, 0)) #✔️
 ```
 
 ```elixir
+ExUnit.start()
+
 defmodule LexerDoctest do
   @moduledoc ~S"""
   Module 'LexerDoctest' tests Lexer functions thoroughly.
@@ -462,26 +464,26 @@ defmodule LexerDoctest do
     Token.new(:value_int,   Automaton.new(0, [1], %{0 => [{&(&1 in ?0..?9), 1}], 1 => [{&(&1 in ?0..?9), 1}]})),
     Token.new(:ident,       Automaton.new(0, [1], %{0 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 == ?_), 1}], 1 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 in ?0..?9 or &1 == ?_), 1}]}))
     ] end
-  
 
-  @doc ~S"""
-  Runs small lexer examples.
 
-  ## Examples
+  @moduledoc ~S"""
+  Doctests for Lexer module:
+
       iex> Lexer.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(LexerDoctest.tokens(),15))
+      {:ok, {:ident, "toto"}, 4, ~c"=3;"}
 
       iex> Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(LexerDoctest.tokens(),15))
       :error
 
       iex> Lexer.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(LexerDoctest.tokens(),0))
       {:ok, {:begin_block, "{"}, 1, []}
-    
+
       iex> Lexer.fetch_recognized_token(~c"while (x==3)", LexerDoctest.tokens())
       {:ok, {:loop, "while"}, 5, ~c" (x==3)"}
-  """
-  def bar(_input), do: :baz
-end
 
+      iex> 
+  """
+end
 ```
 
 #### Ajoutez de la documentation à votre code :
