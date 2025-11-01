@@ -181,7 +181,6 @@ exemple :
     * Exemple : `trim(~c" int x = y;")` retourne `~c"int x = y;"`.
 
 ```elixir
-
 defmodule Token do
   @type code :: atom()
   @type recognized_token :: {Token.code(), String.t()}
@@ -193,9 +192,7 @@ defmodule Token do
     automaton: Automaton.t()
   }
 
-  # Constructor for Token
-  def new(code, automaton) do
-    #IO.inspect("Token #{code} constructed.")
+  def new(code, automaton) do                 # Constructor for Token
     %Token{
       code: code,
       automaton: automaton
@@ -217,8 +214,7 @@ defmodule Automaton do
     transitions: transitions()
   }
 
-  # Constructor for Automaton
-  def new(initial, finals, transitions) do
+  def new(initial, finals, transitions) do    # Constructor for Automaton
   %Automaton{
       initial: initial,
       finals: finals,
@@ -229,21 +225,31 @@ end
 
 tokens = [
       Token.new(:begin_block, Automaton.new(0, [1], %{0 => [{&(&1 == ?{), 1}]})),
-      Token.new(:end_block,  Automaton.new(0, [1], %{0 => [{&(&1 == ?}), 1}]})),
-      Token.new(:begin_par,  Automaton.new(0, [1], %{0 => [{&(&1 == ?(), 1}]})),
-      Token.new(:end_par,    Automaton.new(0, [1], %{0 => [{&(&1 == ?)), 1}]})),
-      Token.new(:semicolon,  Automaton.new(0, [1], %{0 => [{&(&1 == ?;), 1}]})),
-      Token.new(:op_eg,      Automaton.new(0, [2], %{0 => [{&(&1 == ?=), 1}], 1 => [{&(&1 == ?=), 2}]})),
-      Token.new(:op_affect,  Automaton.new(0, [1], %{0 => [{&(&1 == ?=), 1}]})),
-      Token.new(:op_add,     Automaton.new(0, [1], %{0 => [{&(&1 == ?+), 1}]})),
-      Token.new(:op_minus,   Automaton.new(0, [1], %{0 => [{&(&1 == ?-), 1}]})),
-      Token.new(:op_mult,    Automaton.new(0, [1], %{0 => [{&(&1 == ?*), 1}]})),
-      Token.new(:op_div,     Automaton.new(0, [1], %{0 => [{&(&1 == ?/), 1}]})),
-      Token.new(:type_int, Automaton.new(0, [3], %{0 => [{&(&1 == ?i), 1}], 1 => [{&(&1 == ?n), 2}], 2 => [{&(&1 == ?t), 3}]})),
-      Token.new(:cond, Automaton.new(0, [2], %{0 => [{&(&1 == ?i), 1}], 1 => [{&(&1 == ?f), 2}]})),
-      Token.new(:loop, Automaton.new(0, [5], %{0 => [{&(&1 == ?w), 1}], 1 => [{&(&1 == ?h), 2}], 2 => [{&(&1 == ?i), 3}], 3 => [{&(&1 == ?l), 4}], 4 => [{&(&1 == ?e), 5}]})),
-      Token.new(:value_int, Automaton.new(0, [1], %{0 => [{&(&1 in ?0..?9), 1}], 1 => [{&(&1 in ?0..?9), 1}]})),
-      Token.new(:ident, Automaton.new(0, [1], %{0 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 == ?_), 1}], 1 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 in ?0..?9 or &1 == ?_), 1}]}))
+      Token.new(:end_block,   Automaton.new(0, [1], %{0 => [{&(&1 == ?}), 1}]})),
+      Token.new(:begin_par,   Automaton.new(0, [1], %{0 => [{&(&1 == ?(), 1}]})),
+      Token.new(:end_par,     Automaton.new(0, [1], %{0 => [{&(&1 == ?)), 1}]})),
+      Token.new(:semicolon,   Automaton.new(0, [1], %{0 => [{&(&1 == ?;), 1}]})),
+      Token.new(:op_eg,       Automaton.new(0, [2], %{0 => [{&(&1 == ?=), 1}], 
+                                                      1 => [{&(&1 == ?=), 2}]})),
+      Token.new(:op_affect,   Automaton.new(0, [1], %{0 => [{&(&1 == ?=), 1}]})),
+      Token.new(:op_add,      Automaton.new(0, [1], %{0 => [{&(&1 == ?+), 1}]})),
+      Token.new(:op_minus,    Automaton.new(0, [1], %{0 => [{&(&1 == ?-), 1}]})),
+      Token.new(:op_mult,     Automaton.new(0, [1], %{0 => [{&(&1 == ?*), 1}]})),
+      Token.new(:op_div,      Automaton.new(0, [1], %{0 => [{&(&1 == ?/), 1}]})),
+      Token.new(:type_int,    Automaton.new(0, [3], %{0 => [{&(&1 == ?i), 1}], 
+                                                      1 => [{&(&1 == ?n), 2}], 
+                                                      2 => [{&(&1 == ?t), 3}]})),
+      Token.new(:cond,        Automaton.new(0, [2], %{0 => [{&(&1 == ?i), 1}], 
+                                                      1 => [{&(&1 == ?f), 2}]})),
+      Token.new(:loop,        Automaton.new(0, [5], %{0 => [{&(&1 == ?w), 1}], 
+                                                      1 => [{&(&1 == ?h), 2}], 
+                                                      2 => [{&(&1 == ?i), 3}], 
+                                                      3 => [{&(&1 == ?l), 4}], 
+                                                      4 => [{&(&1 == ?e), 5}]})),
+      Token.new(:value_int,   Automaton.new(0, [1], %{0 => [{&(&1 in ?0..?9), 1}], 
+                                                      1 => [{&(&1 in ?0..?9), 1}]})),
+      Token.new(:ident,       Automaton.new(0, [1], %{0 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 == ?_), 1}], 
+                                                      1 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 in ?0..?9 or &1 == ?_), 1}]}))
 ]
 
 defmodule Lexer do
@@ -322,7 +328,7 @@ end
 #Lexer.fetch_recognized_token(~c"while (x==3)", tokens)
 
 Lexer.lex_analysis!("toto=3;", tokens)
-Lexer.lex_analysis!(" int x = y;", tokens) # blanks and stuff
+#Lexer.lex_analysis!(" int x = y;", tokens) # test case blanks and stuff
 #lex_analysis!("toto=3;", lt) # retourne la liste 
 #[ident: "toto", op_affect: "=", value_int: "3", semicolon: ";"]
 ```
