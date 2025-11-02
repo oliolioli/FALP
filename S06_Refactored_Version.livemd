@@ -499,57 +499,6 @@ defmodule LexerDoctest do
 end
 ```
 
-#### Ajoutez de la documentation à votre code :
-
-Commentez chaque module, fonction et type en utilisant respectivement
-[`@moduledoc`](https://hexdocs.pm/elixir/writing-documentation.html), `@spec` +
-[`@doc`](https://hexdocs.pm/elixir/writing-documentation.html) +
-[Doctests](https://hexdocs.pm/elixir/docs-tests-and-with.html#doctests) et
-[`@typedoc`](https://hexdocs.pm/elixir/typespecs.html#a-simple-example).
-
-* Ajoutez des descriptions aux modules, types et fonctions publiques.
-* Pour les fonctions, décrivez également leurs paramètres et leurs valeurs de retour.
-
-##### Exemple
-
-<!-- livebook:{"force_markdown":true} -->
-
-```elixir
-defmodule Foo do
-  @moduledoc ~S"""
-  This is the `Foo` module.
-
-  It ingests anything with the `Foo.bar/1` function to produce baz stamps.
-  """
-
-  @typedoc ~s"A baz stamp"
-  @type baz() :: :baz
-
-  @doc ~S"""
-  Ingest the given `input` to produce a baz stamp.
-
-  Returns `:baz`.
-
-  ## Examples
-
-  These are examples of doctests:
-
-      iex> Foo.bar("stamp")
-      :baz
-
-      iex> Foo.bar(0)
-      :baz
-
-      iex> Foo.bar(%{foo: :bar})
-      :baz
-  """
-  @spec bar(any()) :: baz()
-  def bar(_input), do: :baz
-end
-```
-
-<!-- livebook:{"break_markdown":true} -->
-
 ### Retour théorique personnel
 
 * Expliquez et justifiez les choix d’implémentation concernant vos fonctions
@@ -562,4 +511,13 @@ end
 
 <!-- livebook:{"break_markdown":true} -->
 
-f*Votre rapport ici*
+**Implementation decisions & lookout**
+
+My implementation decisions followed the specifications. Basically, I used a basic test-driven development technique, with which I attempted to fulfill the corresponding parsing tasks of the specification. The specifications already included the most difficult edge cases and were therefore ideal. I tried to write the methods as self-explanatory and simple as possible, which was not always successful due to the complexity. Enumerations and maps were used often and the language's inherent ability for direct pattern matching was also very practical. The use of pipes was particularly beneficial for readability.
+
+The lexer can now recognise and analyse the structure of code to a certain extent. Now, of course, it would be interesting to expand this syntactic checking further, such as the following features:
+Every bracket that is opened must be closed again by its counterpart. Commands must always be terminated by a semicolon. Certain blocks could be indented automatically. Character strings must be correctly enclosed in quotation marks. Comment characters suppress the interpretation of certain areas. In addition to this syntactic structure, a semantic one could be implemented. For example, data types could be checked: Does an integer contain only numbers?
+
+I have not reached a conclusive decision regarding the porting of this project and/or its continuation in another language. If we consider a lexer that performs syntactic-semantic checking we must assume a large number of characters to be parsed. Due to constant user input parsing must be done continuously. For these reasons - even if the processing still needs to be greatly optimised - Elixir would be a good choice due to its speed and low memory usage. Languages closer to the system, like C, would likely offer better performance but would demand more effort to implement the lexer functionality.
+
+**Language reflections**
