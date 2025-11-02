@@ -408,21 +408,10 @@ defmodule Lexer do
     [ident, List.to_string(rec) | lex_analysis!(List.to_string(rest), tokens)] # and recurse rest
   end
 end
-
-
-# doit retourner le triplet {:ok, {:loop, "while"}, ~c" (x==3)"} et non le triplet {:ok, {:ident, "while"}, ~c" (x==3)"}.
-Lexer.fetch_recognized_token(~c"while (x==3)", tokens) # ✔️
-
-Lexer.fetch_recognized_token(~c"whilex (x==3)", tokens) # ✔️
 ```
 
 ```elixir
-ExUnit.start()
-
 defmodule LexerDoctest do
-  @moduledoc ~S"""
-  Module 'LexerDoctest' tests Lexer functions thoroughly.
-  """
 
   # It's necessary to expose tokens via function as doctest has special needs.
   def tokens do
@@ -452,10 +441,11 @@ defmodule LexerDoctest do
     Token.new(:ident,       Automaton.new(0, [1], %{0 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 == ?_), 1}], 1 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 in ?0..?9 or &1 == ?_), 1}]}))
     ] end
 
-
   @moduledoc ~S"""
-  Doctests for Lexer module:
-
+  Module 'LexerDoctest' tests Lexer functions thoroughly.
+  Doctests for Lexer module - taken from the specifications and 
+  then added additional border line cases. Short explanation to be found at every test.
+    
     # Recognise simple ident
       iex> Lexer.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(LexerDoctest.tokens(),15))
       {:ok, {:ident, "toto"}, 4, ~c"=3;"}
@@ -572,4 +562,4 @@ end
 
 <!-- livebook:{"break_markdown":true} -->
 
-*Votre rapport ici*
+f*Votre rapport ici*
