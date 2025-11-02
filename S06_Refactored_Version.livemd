@@ -1,18 +1,5 @@
 # S06 - Analyse Lexicale - Partie 3 (Mini-Project) - fork
 
-## Info étudiant
-
-* étudiant : *<prénom+nom ici>*
-
-## Instructions
-
-* Date butoir : Jeudi **dans deux semaines** à 05h00
-* Travail à rendre : une copie de votre livebook pour le mini-projet au format `.livemd`,
-  incluant la documentation de votre code intégrée celui-ci, et votre retour théorique personnel.
-* N'oubliez pas de mettre votre nom au début du fichier
-
-## Exercice 1
-
 Dans cet exercice, nous terminons l'analyse lexicale commencée dans l'exercice 3 de la série 05.
 
 Les tokens reconnus pour ce langage sont :
@@ -184,6 +171,8 @@ exemple :
 # Disclaimer: Parts of this code and its documentation were scaffolded and challenged 
 # with the help of ChatGPT.
 # 
+# DeepL was used in places to translate the personal reflection.
+# 
 # Special thanks also to Alonso for his extensive guidance and help.
 
 defmodule Token do
@@ -296,7 +285,7 @@ tokens = [
                                                       1 => [{&(&1 in ?0..?9), 1}]})),
       Token.new(:ident,       Automaton.new(0, [1], %{0 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 == ?_), 1}], 
                                                       1 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 in ?0..?9 or &1 == ?_), 1}]}))
-]
+]DeepL was used in places to translate the personal reflection.
 
 defmodule Lexer do
   @moduledoc """
@@ -470,7 +459,7 @@ defmodule LexerDoctest do
       iex> Lexer.recognized_from_state(0, ~c"}toto=3;", {~c"", 0}, Enum.at(LexerDoctest.tokens(),1))
       {:ok, {:end_block, "}"}, 1, ~c"toto=3;"}
 
-    # Recognise unallowed chars
+    #DeepL was used in places to translate the personal reflection. Recognise unallowed chars
       iex> Lexer.recognized_from_state(0, ~c"#abc", {~c"", 0}, Enum.at(LexerDoctest.tokens(),0))
       :error
 
@@ -521,3 +510,12 @@ Every bracket that is opened must be closed again by its counterpart. Commands m
 I have not reached a conclusive decision regarding the porting of this project and/or its continuation in another language. If we consider a lexer that performs syntactic-semantic checking we must assume a large number of characters to be parsed. Due to constant user input parsing must be done continuously. For these reasons - even if the processing still needs to be greatly optimised - Elixir would be a good choice due to its speed and low memory usage. Languages closer to the system, like C, would likely offer better performance but would demand more effort to implement the lexer functionality.
 
 **Language reflections**
+
+Elixir offers powerful tools for iteratively processing lists (continues passing, accumulators). This is ideal for processing data streams as a lexer must be able to do.
+
+Recursive solutions have both advantages and disadvantages: on the one hand, a recursive function can be very elegant and contain little redundant code, with an accumulator gathering all the necessary information along the way. However, as soon as errors occur during processing, it becomes somewhat difficult in this functional context to identify exactly when the error occurred, since we are not actually working with defined states. The lack of simple debugging tools exacerbates this difficulty:
+We can surely use IO.inspect to examine objects at runtime with a reasonable degree of flexibility. But the included debugger 'pry' can only be used on the command line and, in my opinion, is not very convenient (unless you know exactly where the error is likely to be). Even the most frequently used plugin, 'ElixirLS' in vscode, does not support sophisticated debugging. These circumstances make debugging unnecessarily time-consuming. Every other high-level programming language I know (C, C#, Python, Ruby, Java) comes with a graphical debugger in IDEs such as vscode or IntelliJ.
+
+Despite these weaknesses, I do of course also see the strengths of functional programming. Modules that are kept as small as possible, ideally delivering ‘pure’, idempotent results that can ultimately be strung together: these are architectural characteristics whose manifestations we recognise in microservices and Rest APIs, in Unix-like kernels or pipe systems. And anonymous functions are used extremely frequently in other high-level languages such as Python or C#. And, of course, it makes sense in terms of resources and security to use as little memory as possible.
+
+Therefore, I believe that the decision for a specific paradigm must be adapted to the situation and environment and cannot be a black-and-white question.
