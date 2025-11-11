@@ -1,0 +1,298 @@
+# S03 - Feedback
+
+```elixir
+ExUnit.start(autorun: false)
+```
+
+## Unit Testing in Elixir
+
+Elixir provides a unit testing framework called [`ExUnit`](https://hexdocs.pm/ex_unit/ExUnit.html).
+
+In relation to the series, this is completely optional, so you don't have to use it for your
+submissions if you don't want to.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Using ExUnit
+
+To run unit tests inside a livebook, you first need to add `ExUnit.start(autorun: false)` to the
+setup cell located at the very beginning of the document (like it was done for this one) and then
+call `ExUnit.run()` at the end of the cell where your test module definition resides.
+
+```elixir
+defmodule MyModule do
+  def add_fun(x, y) when is_integer(x) and is_integer(y), do: x + y
+  def add_fun(x, y) when is_float(x) or is_float(y), do: round(x + y)
+end
+```
+
+The naming convention for ExUnit is to append `Test` to the name of the module you want to test.
+
+In the example below, we want to test `MyModule` (which we defined above), so the name for our
+unit tests shall be `MyModuleTest`.
+
+```elixir
+defmodule MyModuleTest do
+  use ExUnit.Case, async: true
+
+  setup do
+    x = Enum.random(0..10)
+    y = Enum.random(0..10)
+    sum = x + y
+    %{x: x, y: y, sum: sum, x_fl: x * 1.0, sum_fl: sum * 1.0}
+  end
+
+  describe "add_fun/2" do
+    test "correctly sums two numbers", %{x: x, y: y} do
+      # assert/1 checks that the expression you give it returns a "truthy" value,
+      # i.e. the test will pass if it receives `true` or any value that is not
+      # `nil` or `false`.
+      assert MyModule.add_fun(x, y) == x + y
+    end
+
+    test "always returns an integer", %{x: x, x_fl: x_fl, y: y, sum: sum, sum_fl: sum_fl} do
+      assert MyModule.add_fun(x, y) == sum
+      # refute/1 is the negation of assert/1. That means it instead checks that
+      # the expression you give it returns a "falsy" value, i.e. the test will
+      # pass if it receives `false` or `nil`.
+      refute MyModule.add_fun(x_fl, y) === sum_fl
+    end
+
+    test "raises a FunctionClauseError for other inputs" do
+      # assert_raise/2 checks that the function you pass it raises the specified
+      # exception. **Note** that it is necessary to wrap the function you want
+      # to test inside an anonymous function of 0-arity.
+      assert_raise FunctionClauseError, fn ->
+        MyModule.add_fun("hello", "world")
+      end
+    end
+  end
+end
+
+ExUnit.run()
+```
+
+Have a look at the [HexDocs](https://hexdocs.pm/ex_unit/ExUnit.html) page for more information
+on how to write unit tests.
+
+## Examples for the Mini-Project Part 1
+
+### Exercise 3a
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+defmodule Exercise3aTest do
+  use ExUnit.Case, async: true
+
+  describe "is_final_state/1" do
+    test "returns true with 4" do
+      assert Exercise3a.is_final_state(4)
+    end
+
+    test "returns false with any other state" do
+      refute Exercise3a.is_final_state(0)
+      refute Exercise3a.is_final_state(1)
+      refute Exercise3a.is_final_state(2)
+      refute Exercise3a.is_final_state(3)
+    end
+  end
+
+  describe "first_state/0" do
+    test "returns 0" do
+      assert Exercise3a.first_state() == 0
+    end
+  end
+
+  describe "transition/2" do
+    test "returns the next valid state the correct state and character" do
+      assert Exercise3a.transition(0, ?a) == 1
+      assert Exercise3a.transition(1, ?a) == 3
+      assert Exercise3a.transition(1, ?b) == 2
+      assert Exercise3a.transition(2, ?a) == 4
+      assert Exercise3a.transition(2, ?b) == 2
+      assert Exercise3a.transition(3, ?b) == 4
+      assert Exercise3a.transition(4, ?a) == 1
+    end
+
+    test "returns -1 with any other input" do
+      assert Exercise3a.transition(0, ?b) == -1
+      assert Exercise3a.transition(1, ?c) == -1
+      assert Exercise3a.transition(2, ?c) == -1
+      assert Exercise3a.transition(3, ?a) == -1
+      assert Exercise3a.transition(4, ?b) == -1
+    end
+  end
+
+  describe "is_token/1" do
+    test "returns true for valid tokens" do
+      assert Exercise3a.is_token(~c"aababba")
+      assert Exercise3a.is_token(~c"aab")
+      assert Exercise3a.is_token(~c"aababbbba")
+      assert Exercise3a.is_token(~c"aabaab")
+      assert Exercise3a.is_token(~c"abba")
+      assert Exercise3a.is_token(~c"aabaababbba")
+    end
+
+    test "returns false for invalid tokens" do
+      refute Exercise3a.is_token(~c"a")
+      refute Exercise3a.is_token(~c"aa")
+      refute Exercise3a.is_token(~c"aaa")
+    end
+
+    test "accepts strings as well" do
+      assert Exercise3a.is_token("aababba")
+      assert Exercise3a.is_token("aababbbba")
+      assert Exercise3a.is_token("abba")
+    end
+  end
+
+  describe "recognized_from_state/2" do
+    test "returns true from valid states and tokens" do
+      assert Exercise3a.recognized_from_state(0, ~c"aab")
+      assert Exercise3a.recognized_from_state(0, ~c"aba")
+      assert Exercise3a.recognized_from_state(1, ~c"bba")
+      assert Exercise3a.recognized_from_state(1, ~c"ab")
+      assert Exercise3a.recognized_from_state(2, ~c"a")
+      assert Exercise3a.recognized_from_state(2, ~c"bba")
+      assert Exercise3a.recognized_from_state(2, ~c"bbbbbba")
+      assert Exercise3a.recognized_from_state(3, ~c"b")
+      assert Exercise3a.recognized_from_state(3, ~c"baab")
+    end
+
+    test "returns false from invalid states and tokens" do
+      refute Exercise3a.recognized_from_state(-1, ~c"c")
+      refute Exercise3a.recognized_from_state(0, ~c"a")
+      refute Exercise3a.recognized_from_state(0, ~c"b")
+      refute Exercise3a.recognized_from_state(1, ~c"aba")
+      refute Exercise3a.recognized_from_state(2, ~c"c")
+      refute Exercise3a.recognized_from_state(3, ~c"bbba")
+    end
+  end
+end
+
+ExUnit.run()
+```
+
+```
+Running ExUnit with seed: 622949, max_cases: 16
+
+..........
+Finished in 0.00 seconds (0.00s async, 0.00s sync)
+10 tests, 0 failures
+
+```
+
+```
+%{total: 10, failures: 0, excluded: 0, skipped: 0}
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Exercise 3b
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+defmodule Exercise3bTest do
+  use ExUnit.Case, async: true
+
+  setup_all do
+    my_automata = {0, [4], [{0,?a,1}, {1,?b,2}, {1,?a,3}, {2,?a,4}, {2,?b,2}, {3,?b,4}, {4,?a,1}]}
+    %{automata: my_automata}
+  end
+
+  describe "is_token/2" do
+    test "returns true for valid tokens", %{automata: my_automata} do
+      assert Exercise3b.is_token(~c"aababba", my_automata)
+      assert Exercise3b.is_token(~c"aab", my_automata)
+      assert Exercise3b.is_token(~c"aababbbba", my_automata)
+      assert Exercise3b.is_token(~c"aabaab", my_automata)
+      assert Exercise3b.is_token(~c"abba", my_automata)
+      assert Exercise3b.is_token(~c"aabaababbba", my_automata)
+    end
+
+    test "returns false for invalid tokens", %{automata: my_automata} do
+      refute Exercise3b.is_token(~c"a", my_automata)
+      refute Exercise3b.is_token(~c"aa", my_automata)
+      refute Exercise3b.is_token(~c"aaa", my_automata)
+    end
+
+    test "accepts strings as well", %{automata: my_automata} do
+      assert Exercise3b.is_token("aababba", my_automata)
+      assert Exercise3b.is_token("aababbbba", my_automata)
+      assert Exercise3b.is_token("abba", my_automata)
+    end
+  end
+
+  describe "recognized_from_state/3" do
+    test "returns true from valid states and tokens", %{automata: my_automata} do
+      assert Exercise3b.recognized_from_state(0, ~c"aab", my_automata)
+      assert Exercise3b.recognized_from_state(0, ~c"aba", my_automata)
+      assert Exercise3b.recognized_from_state(1, ~c"bba", my_automata)
+      assert Exercise3b.recognized_from_state(1, ~c"ab", my_automata)
+      assert Exercise3b.recognized_from_state(2, ~c"a", my_automata)
+      assert Exercise3b.recognized_from_state(2, ~c"bba", my_automata)
+      assert Exercise3b.recognized_from_state(2, ~c"bbbbbba", my_automata)
+      assert Exercise3b.recognized_from_state(3, ~c"b", my_automata)
+      assert Exercise3b.recognized_from_state(3, ~c"baab", my_automata)
+    end
+
+    test "returns false from invalid states and tokens", %{automata: my_automata} do
+      refute Exercise3b.recognized_from_state(-1, ~c"c", my_automata)
+      refute Exercise3b.recognized_from_state(0, ~c"a", my_automata)
+      refute Exercise3b.recognized_from_state(0, ~c"b", my_automata)
+      refute Exercise3b.recognized_from_state(1, ~c"aba", my_automata)
+      refute Exercise3b.recognized_from_state(2, ~c"c", my_automata)
+      refute Exercise3b.recognized_from_state(3, ~c"bbba", my_automata)
+    end
+  end
+
+  describe "is_final_state/2" do
+    test "returns true with 4", %{automata: my_automata} do
+      assert Exercise3b.is_final_state(4, my_automata)
+    end
+
+    test "returns false with any other state", %{automata: my_automata} do
+      refute Exercise3b.is_final_state(0, my_automata)
+      refute Exercise3b.is_final_state(1, my_automata)
+      refute Exercise3b.is_final_state(2, my_automata)
+      refute Exercise3b.is_final_state(3, my_automata)
+    end
+  end
+
+  describe "next_state/3" do
+    test "returns the next valid state the correct state and character", %{automata: my_automata} do
+      assert Exercise3b.next_state(0, ?a, my_automata) == 1
+      assert Exercise3b.next_state(1, ?a, my_automata) == 3
+      assert Exercise3b.next_state(1, ?b, my_automata) == 2
+      assert Exercise3b.next_state(2, ?a, my_automata) == 4
+      assert Exercise3b.next_state(2, ?b, my_automata) == 2
+      assert Exercise3b.next_state(3, ?b, my_automata) == 4
+      assert Exercise3b.next_state(4, ?a, my_automata) == 1
+    end
+
+    test "returns -1 with any other input", %{automata: my_automata} do
+      assert Exercise3b.next_state(0, ?b, my_automata) == -1
+      assert Exercise3b.next_state(1, ?c, my_automata) == -1
+      assert Exercise3b.next_state(2, ?c, my_automata) == -1
+      assert Exercise3b.next_state(3, ?a, my_automata) == -1
+      assert Exercise3b.next_state(4, ?b, my_automata) == -1
+    end
+  end
+end
+
+ExUnit.run()
+```
+
+```
+Running ExUnit with seed: 622949, max_cases: 16
+
+.........
+Finished in 0.00 seconds (0.00s async, 0.00s sync)
+9 tests, 0 failures
+```
+
+```
+%{total: 9, failures: 0, excluded: 0, skipped: 0}
+```

@@ -2,6 +2,16 @@
 
 # S05 - Récursivité Terminale
 
+## Info étudiant
+
+* étudiant : *Olivier Meier*
+
+## Instructions
+
+* Date butoir : Jeudi prochain à 05h00
+* Travail à rendre : une copie de votre livebook pour la série au format `.livemd`
+* N'oubliez pas de mettre votre nom au début du fichier
+
 ## Exercice 1
 
 **Attention** : Par "plis", on entend les fonctions [`List.foldl/3`](https://hexdocs.pm/elixir/List.html#foldl/3) pour un plis à gauche, et
@@ -468,13 +478,13 @@ end
 #Exercise2.fetch_token!(~c"toto")
 #Exercise2.lex_analysis("int x ; int y ; x = y * 2 ; ")
 # Exercise2.fetch_token!(~c"toto") # retourne :ident
-Exercise2.fetch_token!(~c"{") # retourne :ident
-|>
-Exercise2.filter_fetched_token()
+# Exercise2.fetch_token!(~c"{") # retourne :ident
+# |>
+# Exercise2.filter_fetched_token()
 
-Exercise2.is_token(~c";", Exercise2.tokens())
+# Exercise2.is_token(~c";", Exercise2.tokens())
 
-Exercise2.reconized_from_state()
+# Exercise2.reconized_from_state()
 
 ```
 
@@ -482,20 +492,24 @@ Exercise2.reconized_from_state()
 
 ```
 warning: variable "final_state" is unused (if the variable is not meant to be used, prefix it with an underscore)
-└─ /home/oli/Documents/uni/FALP/Serien/OlivierMeier_S05_Tail_Recursion.livemd#cell:2oqvxudrzzxnocq5:70: Exercise2.next_state/3
+└─ /home/oli/Documents/uni/FALP/Serien/OlivierMeier_S05_Tail_Recursion.livemd#cell:zhuzb4rjyrq5jbnn:70: Exercise2.next_state/3
 
 warning: variable "inital_state" is unused (if the variable is not meant to be used, prefix it with an underscore)
-└─ /home/oli/Documents/uni/FALP/Serien/OlivierMeier_S05_Tail_Recursion.livemd#cell:2oqvxudrzzxnocq5:70: Exercise2.next_state/3
+└─ /home/oli/Documents/uni/FALP/Serien/OlivierMeier_S05_Tail_Recursion.livemd#cell:zhuzb4rjyrq5jbnn:70: Exercise2.next_state/3
 
 warning: variable "result_list" is unused (if the variable is not meant to be used, prefix it with an underscore)
-└─ /home/oli/Documents/uni/FALP/Serien/OlivierMeier_S05_Tail_Recursion.livemd#cell:2oqvxudrzzxnocq5:108: Exercise2.lex_analysis_2/2
+└─ /home/oli/Documents/uni/FALP/Serien/OlivierMeier_S05_Tail_Recursion.livemd#cell:zhuzb4rjyrq5jbnn:107: Exercise2.lex_analysis_2/2
 
 ```
 
 <!-- livebook:{"output":true} -->
 
 ```
-** (MatchError) no match of right hand side value: [begin_block: {0, [1], %{0 => {#Function<7.3497918/1 in Exercise2.tokens/0>, 1}}}, end_block: {0, [1], %{0 => {#Function<8.3497918/1 in Exercise2.tokens/0>, 1}}}, begin_par: {0, [1], %{0 => {#Function<9.3497918/1 in Exercise2.tokens/0>, 1}}}, end_par: {0, [1], %{0 => {#Function<10.3497918/1 in Exercise2.tokens/0>, 1}}}, semicolon: {0, [1], %{0 => {#Function<11.3497918/1 in Exercise2.tokens/0>, 1}}}, op_eg: {0, [2], %{0 => {#Function<12.3497918/1 in Exercise2.tokens/0>, 1}, 1 => {#Function<13.3497918/1 in Exercise2.tokens/0>, 2}}}, op_affect: {0, [1], %{0 => {#Function<14.3497918/1 in Exercise2.tokens/0>, 1}}}, op_add: {0, [1], %{0 => {#Function<15.3497918/1 in Exercise2.tokens/0>, 1}}}, op_minus: {0, [1], %{0 => {#Function<16.3497918/1 in Exercise2.tokens/0>, 1}}}, op_mult: {0, [1], %{0 => {#Function<17.3497918/1 in Exercise2.tokens/0>, 1}}}, op_div: {0, [1], %{0 => {#Function<18.3497918/1 in Exercise2.tokens/0>, 1}}}, type_int: {0, [3], %{0 => {#Function<19.3497918/1 in Exercise2.tokens/0>, 1}, 1 => {#Function<20.3497918/1 in Exercise2.tokens/0>, 2}, 2 => {#Function<21.3497918/1 in Exercise2.tokens/0>, 3}}}, cond: {0, [2], %{0 => {#Function<22.3497918/1 in Exercise2.tokens/0>, 1}, 1 => {#Function<23.3497918/1 in Exercise2.tokens/0>, 2}}}, loop: {0, [5], %{0 => {#Function<24.3497918/1 in Exercise2.tokens/0>, 1}, 1 => {#Function<25.3497918/1 in Exercise2.tokens/0>, 2}, 2 => {#Function<26.3497918/1 in Exercise2.tokens/0>, 3}, 3 => {#Function<27.3497918/1 in Exercise2.tokens/0>, 4}, 4 => {#Function<28.3497918/1 in Exercise2.tokens/0>, 5}}}, value_int: {0, [1], %{0 => {#Function<29.3497918/1 in Exercise2.tokens/0>, 1}, 1 => {#Function<30.3497918/1 in Exercise2.tokens/0>, 1}}}, ident: {0, [1], %{0 => {#Function<31.3497918/1 in Exercise2.tokens/0>, 1}, 1 => {#Function<32.3497918/1 in Exercise2.tokens/0>, 1}}}]
-    #cell:2oqvxudrzzxnocq5:40: Exercise2.is_token/2
-    #cell:2oqvxudrzzxnocq5:147: (file)
+** (MatchError) no match of right hand side value: nil
+    #cell:zhuzb4rjyrq5jbnn:71: Exercise2.next_state/3
+    (elixir 1.18.4) lib/enum.ex:2546: Enum."-reduce/3-lists^foldl/2-0-"/3
+    #cell:zhuzb4rjyrq5jbnn:50: Exercise2.reconized_from_state/3
+    #cell:zhuzb4rjyrq5jbnn:82: anonymous fn/2 in Exercise2.fetch_token!/2
+    (elixir 1.18.4) lib/enum.ex:1714: Enum."-map/2-lists^map/1-1-"/2
+    #cell:zhuzb4rjyrq5jbnn:138: (file)
 ```

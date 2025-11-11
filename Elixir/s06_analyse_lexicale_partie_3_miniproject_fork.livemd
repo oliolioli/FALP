@@ -1,6 +1,4 @@
-<!-- livebook:{"persist_outputs":true} -->
-
-# S06 - Analyse Lexicale - Partie 3 (Mini-Project)
+# S06 - Analyse Lexicale - Partie 3 (Mini-Project) - fork
 
 ## Info étudiant
 
@@ -183,28 +181,6 @@ exemple :
     * Exemple : `trim(~c" int x = y;")` retourne `~c"int x = y;"`.
 
 ```elixir
-tokens = [
-      # TODO: rewrite this block (if applicable) with constructors
-      {:begin_block, {
-        0, [1], %{0 => {&(&1 == ?{), 1}}}
-      },
-      {:end_block, {0, [1], %{0 => {&(&1 == ?}), 1}}}},
-      {:begin_par, {0, [1], %{0 => {&(&1 == ?(), 1}}}},
-      {:end_par, {0, [1], %{0 => {&(&1 == ?)), 1}}}},
-      {:semicolon, {0, [1], %{0 => {&(&1 == ?;), 1}}}},
-      {:op_eg, {0, [2], %{0 => {&(&1 == ?=), 1}, 1 => {&(&1 == ?=), 2}}}},
-      {:op_affect, {0, [1], %{0 => {&(&1 == ?=), 1}}}},
-      {:op_add, {0, [1], %{0 => {&(&1 == ?+), 1}}}},
-      {:op_minus, {0, [1], %{0 => {&(&1 == ?-), 1}}}},
-      {:op_mult, {0, [1], %{0 => {&(&1 == ?*), 1}}}},
-      {:op_div, {0, [1], %{0 => {&(&1 == ?/), 1}}}},
-      {:type_int, {0, [3], %{0 => {&(&1 == ?i), 1}, 1 => {&(&1 == ?n), 2}, 2 => {&(&1 == ?t), 3}}}},
-      {:cond, {0, [2], %{0 => {&(&1 == ?i), 1}, 1 => {&(&1 == ?f), 2}}}},
-      {:loop, {0, [5], %{0 => {&(&1 == ?w), 1}, 1 => {&(&1 == ?h), 2}, 2 => {&(&1 == ?i), 3}, 3 => {&(&1 == ?l), 4}, 4 => {&(&1 == ?e), 5}}}},
-      {:value_int, {0, [1], %{0 => {&(&1 in ?0..?9), 1}, 1 => {&(&1 in ?0..?9), 1}}}},
-      {:ident, {0, [1], %{0 => {&(&1 in ?A..?Z or &1 in ?a..?z or &1 == ?_), 1}, 1 => {&(&1 in ?A..?Z or &1 in ?a..?z or &1 in ?0..?9 or &1 == ?_), 1}}}}
-  ]
-
 defmodule Token do
   @type code :: atom()
   @type recognized_token :: {Token.code(), String.t()}
@@ -215,6 +191,15 @@ defmodule Token do
     code: code(),
     automaton: Automaton.t()
   }
+
+  # Constructor for Token
+  def new(code, automaton) do
+    #IO.inspect("Token #{code} constructed.")
+    %Token{
+      code: code,
+      automaton: automaton
+    }
+  end
 end
 
 defmodule Automaton do
@@ -240,7 +225,28 @@ defmodule Automaton do
     }
     IO.inspect("Automaton constructed.")
   end
+end
 
+tokens = [
+  Token.new(:begin_block, Automaton.new(0, [1], %{0 => [{&(&1 == ?{), 1}]})),
+  Token.new(:end_block,  Automaton.new(0, [1], %{0 => [{&(&1 == ?}), 1}]})),
+  Token.new(:begin_par,  Automaton.new(0, [1], %{0 => [{&(&1 == ?(), 1}]})),
+  Token.new(:end_par,    Automaton.new(0, [1], %{0 => [{&(&1 == ?)), 1}]})),
+  Token.new(:semicolon,  Automaton.new(0, [1], %{0 => [{&(&1 == ?;), 1}]})),
+  Token.new(:op_eg,      Automaton.new(0, [2], %{0 => [{&(&1 == ?=), 1}], 1 => [{&(&1 == ?=), 2}]})),
+  Token.new(:op_affect,  Automaton.new(0, [1], %{0 => [{&(&1 == ?=), 1}]})),
+  Token.new(:op_add,     Automaton.new(0, [1], %{0 => [{&(&1 == ?+), 1}]})),
+  Token.new(:op_minus,   Automaton.new(0, [1], %{0 => [{&(&1 == ?-), 1}]})),
+  Token.new(:op_mult,    Automaton.new(0, [1], %{0 => [{&(&1 == ?*), 1}]})),
+  Token.new(:op_div,     Automaton.new(0, [1], %{0 => [{&(&1 == ?/), 1}]})),
+  Token.new(:type_int, Automaton.new(0, [3], %{0 => [{&(&1 == ?i), 1}], 1 => [{&(&1 == ?n), 2}], 2 => [{&(&1 == ?t), 3}]})),
+  Token.new(:cond, Automaton.new(0, [2], %{0 => [{&(&1 == ?i), 1}], 1 => [{&(&1 == ?f), 2}]})),
+  Token.new(:loop, Automaton.new(0, [5], %{0 => [{&(&1 == ?w), 1}], 1 => [{&(&1 == ?h), 2}], 2 => [{&(&1 == ?i), 3}], 3 => [{&(&1 == ?l), 4}], 4 => [{&(&1 == ?e), 5}]})),
+  Token.new(:value_int, Automaton.new(0, [1], %{0 => [{&(&1 in ?0..?9), 1}], 1 => [{&(&1 in ?0..?9), 1}]})),
+  Token.new(:ident, Automaton.new(0, [1], %{0 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 == ?_), 1}], 1 => [{&(&1 in ?A..?Z or &1 in ?a..?z or &1 in ?0..?9 or &1 == ?_), 1}]}))
+  ]
+
+defmodule Lexer do
   # ✔️ next_state(state, c, automaton) prend en paramètre un état state, un caractère c et un automate.
   # Elle retourne l'état d'arrivée de la transition partant de l'état et portant le caractère.
   # Elle retourne -1 si la transition n'existe pas.
@@ -256,22 +262,16 @@ defmodule Automaton do
     end
   end
 
-  # ✔️ is_final_state(state, token) : cette fonction prend en paramètre un état state et un automate.
-  # Elle retourne true si l'état est final dans cet automate, et false sinon.
-  def is_final_state(state, token) do
-    {_, {_, [final_state], _}} = token
-    state == final_state
-  end
-
   # ✔️ recognized_from_state retourne un quadruplet {:ok, rec_token, length, rest} 
   # où rec_token est le doublet {code, rec} - le code du token et la partie du texte reconnue
   # rec - length est la longueur de la partie du texte reconnue par le token et rest est la partie du texte qui suit.  
   # TODO - Check: Cette fonction est "gloutonne", car elle reconnaît la plus grande partie possible de texte. 
   def recognized_from_state(state, text, {rec, len}, token) do
+    #IO.inspect(token)
     {_, rec, length} =
     Enum.reduce_while(text, {state, rec, len}, fn char, {state, rec, len} ->
       # IO.inspect(text)
-      # IO.inspect(<<char>>)
+      IO.inspect(<<char>>)
       next = next_state(state, char, token)
         
       if next == -1 do
@@ -289,7 +289,6 @@ defmodule Automaton do
     end
   end
 
-  
   # fetch_recognized_token recherche quel est le token qui reconnaît le début du texte text 
   # avec la liste des tokens du langage tokens.
   # Elle retourne un triplet {:ok, rec_token, rest} où rec_token est le doublet {code, rec}  -
@@ -313,70 +312,54 @@ defmodule Automaton do
        matches -> matches                 # ... otherwise the found results (=matches)
      end
   end
-
-  def lex_analysis!(text, tokens) do
-    # TODO
-  end
 end
 
-#Automaton.is_final_state(1, Enum.at(tokens, 15))  # returns true ✔️
 # retourne le quadruplet {:ok, {:ident, "toto"}, 4, ~c"=3;"}
-#Automaton.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(tokens,15)) #✔️
-#Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15)) # retourne :error ✔️
-#Automaton.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(tokens, 0)) #✔️
-#Automaton.recognized_from_state(0, ~c"{abc", {~c"", 0}, Enum.at(tokens, 0)) #✔️
-#Automaton.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(tokens,15)) #✔️
-#Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15)) #retourne :error ✔️ 
-#Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 0)) # ✔️
-#Automaton.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 0)) ✔️
-#Automaton.recognized_from_state(0, ~c"#x=3;}", {~c"", 0}, Enum.at(tokens, 0)) # error ✔️
+Lexer.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(tokens,15)) #✔️
+#Lexer.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(tokens,16)) #✔️
+#Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15)) # retourne :error ✔️
+#Lexer.recognized_from_state(0, ~c"{", {~c"", 0}, Enum.at(tokens, 0)) #✔️
+#Lexer.recognized_from_state(0, ~c"{abc", {~c"", 0}, Enum.at(tokens, 0)) #✔️
+#Lexer.recognized_from_state(0, ~c"toto=3;", {~c"", 0}, Enum.at(tokens,15)) #✔️
+#Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 15)) #retourne :error ✔️ 
+#Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 0)) # ✔️
+#Lexer.recognized_from_state(0, ~c"{x=3;}", {~c"", 0}, Enum.at(tokens, 0)) ✔️
+#Lexer.recognized_from_state(0, ~c"#x=3;}", {~c"", 0}, Enum.at(tokens, 0)) # error ✔️
 
-#Automaton.fetch_recognized_token(~c"toto", tokens)
+#Lexer.fetch_recognized_token(~c"toto", tokens)
 # retourne le triplet {:ok, {:begin_block, "{"}, ~c"x=3;}"} car le texte commence par le token ~c"{", et ~c"x=3;}" est la partie du texte qui suit. 
-#Automaton.fetch_recognized_token(~c"{x=3;}", tokens)  # ✔️
+#Lexer.fetch_recognized_token(~c"{x=3;}", tokens)  # ✔️
 
 # retourne :error car le texte commence par le token ~c":" qui n'est reconnu par aucun des tokens. ✔️
-#Automaton.fetch_recognized_token(~c": x=3;", tokens)
+#Lexer.fetch_recognized_token(~c": x=3;", tokens)
 
 # doit retourner le triplet {:ok, {:loop, "while"}, ~c" (x==3)"} et non le triplet {:ok, {:ident, "while"}, ~c" (x==3)"}.
-#Automaton.fetch_recognized_token(~c"while (x==3)", tokens) # ❌ - returns the first triplet ok, but then a second bad one
-#Automaton.fetch_recognized_token(~c"whilex (x==3)", tokens) # ❌ - returns the first triplet ok, but then a second bad one
+#Lexer.fetch_recognized_token(~c"while (x==3)", tokens) # ❌ - returns the first triplet ok, but then a second bad one
+#Lexer.fetch_recognized_token(~c"whilex (x==3)", tokens) # ❌ - returns the first triplet ok, but then a second bad one
 
 
 # trim(~c" int x = y;") retourne ~c"int x = y;".
 
-Für lex_analysis!() könnte man wohl benützen:
+# Für lex_analysis!() könnte man wohl benützen:
 
-# Returns a list of all the elements
-def get_all_parsing_items(input) do
-    input
-    |> String.split(";", trim: true)
-    |> Enum.map(&String.trim/1)  
-    |> Enum.reject(&(&1 == ""))
-end
+# # Returns a list of all the elements
+# def get_all_parsing_items(input) do
+#     input
+#     |> String.split(";", trim: true)
+#     |> Enum.map(&String.trim/1)  
+#     |> Enum.reject(&(&1 == ""))
+# end
 
-und (korrigiertes) sowas:
-def lex_analysis_2(input_strings), do: lex_analysis_2(input_strings, tokens())
-def lex_analysis_2(input_strings, tokens) do
-  result_list = [
-    input_strings 
-    |> String.split(~r/\s+/)     # ~r/\s+/ matches any stretch of spaces / tabs / newlines.
-    |> Enum.map(fn word ->
-      fetch_token!(~c"#{word}", tokens)
-  end)]
-end
-```
-
-<!-- livebook:{"output":true} -->
-
-```
-** (SyntaxError) invalid syntax found on /home/oli/Documents/uni/FALP/Serien/S06_Lexical_Analysis_Part_3.livemd#cell:7d777kf3fxnwsnl7:163:1:
-     error: invalid character "ü" (code point U+00FC) in alias (only ASCII characters, without punctuation, are allowed): Für
-     │
- 163 │ Für lex_analysis!() könnte man wohl benützen:
-     │ ^
-     │
-     └─ /home/oli/Documents/uni/FALP/Serien/S06_Lexical_Analysis_Part_3.livemd#cell:7d777kf3fxnwsnl7:163:1
+# und (korrigiertes) sowas:
+# def lex_analysis_2(input_strings), do: lex_analysis_2(input_strings, tokens())
+# def lex_analysis_2(input_strings, tokens) do
+#   result_list = [
+#     input_strings 
+#     |> String.split(~r/\s+/)     # ~r/\s+/ matches any stretch of spaces / tabs / newlines.
+#     |> Enum.map(fn word ->
+#       fetch_token!(~c"#{word}", tokens)
+#   end)]
+# end
 ```
 
 #### Ajoutez de la documentation à votre code :

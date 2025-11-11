@@ -1,5 +1,18 @@
 # S06 - Analyse Lexicale - Partie 3 (Mini-Project) - fork
 
+## Info étudiant
+
+Olivier Meier
+
+## Instructions
+
+* Date butoir : Jeudi **dans deux semaines** à 05h00
+* Travail à rendre : une copie de votre livebook pour le mini-projet au format `.livemd`,
+  incluant la documentation de votre code intégrée celui-ci, et votre retour théorique personnel.
+* N'oubliez pas de mettre votre nom au début du fichier
+
+## Exercice 1
+
 Dans cet exercice, nous terminons l'analyse lexicale commencée dans l'exercice 3 de la série 05.
 
 Les tokens reconnus pour ce langage sont :
@@ -515,7 +528,8 @@ Elixir offers powerful tools for iteratively processing lists (continues passing
 
 Recursive solutions have both advantages and disadvantages: on the one hand, a recursive function can be very elegant and contain little redundant code, with an accumulator gathering all the necessary information along the way. However, as soon as errors occur during processing, it becomes somewhat difficult in this functional context to identify exactly when the error occurred, since we are not actually working with defined states. The lack of simple debugging tools exacerbates this difficulty:
 We can surely use IO.inspect to examine objects at runtime with a reasonable degree of flexibility. But the included debugger 'pry' can only be used on the command line and, in my opinion, is not very convenient (unless you know exactly where the error is likely to be). Even the most frequently used plugin, 'ElixirLS' in vscode, does not support sophisticated debugging. These circumstances make debugging unnecessarily time-consuming. Every other high-level programming language I know (C, C#, Python, Ruby, Java) comes with a graphical debugger in IDEs such as vscode or IntelliJ.
+I also noticed the dynamic typing of the language when creating this lexer: while prototyping can be written fairly quickly, runtime errors can occur that are difficult to track down (see debugging options).
 
-Despite these weaknesses, I do of course also see the strengths of functional programming. Modules that are kept as small as possible, ideally delivering ‘pure’, idempotent results that can ultimately be strung together: these are architectural characteristics whose manifestations we recognise in microservices and Rest APIs, in Unix-like kernels or pipe systems. And anonymous functions are used extremely frequently in other high-level languages such as Python or C#. And, of course, it makes sense in terms of resources and security to use as little memory as possible.
+Despite these weaknesses, I do of course also see the strengths of functional programming. Modules that are kept as small as possible, ideally delivering ‘pure’, idempotent results that can ultimately be strung together: these are architectural characteristics whose manifestations we recognise in microservices and Rest APIs, in Unix-like kernels or pipe systems. And anonymous functions are used extremely frequently in other high-level languages such as Python or C#. And, of course, it makes sense in terms of resources and security to use as little memory as possible. Furthermore, since Elixir runs on the Erlang Virtual Machine BEAM, we would not have to compile our lexer separately for each target system. 
 
 Therefore, I believe that the decision for a specific paradigm must be adapted to the situation and environment and cannot be a black-and-white question.
