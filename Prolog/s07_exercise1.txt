@@ -1,0 +1,27 @@
+These instantiation patterns do not enforce anything, they are to document the intended use:
+
+i) The "+" argument: Argument must be given (even though it doesn't must be grounded): 
+
+% foo(+N)
+foo(X). - valid: Argument given, but not necesserily grounded.
+
+
+ii) The "++" argument: Argument must be instantiated and must contain no variables (thus must be "grounded").
+
+% foo(++N)
+foo(42). - valid: Argument given and grounded.
+
+
+iii) The "-" argument: Argument must be a variable - filled by the predicate.
+
+% foo(-N)
+foo(42). - not allowed, as it is no variable.
+foo(X). - good, will be filled by the predicate.
+
+
+iv) The "?" argument: Argument can be anything.
+
+% foo(?N)
+foo("The meaning of life"). - Perfectly fine.
+
+
