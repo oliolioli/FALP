@@ -1,3 +1,5 @@
+S07 - Exercise 1:
+
 These instantiation patterns do not enforce anything, they are to document the intended use:
 
 i) The "+" argument: Argument must be given (even though it doesn't must be grounded): 
