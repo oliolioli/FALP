@@ -20,6 +20,25 @@ scalar_product_acc_rec([H1|T1], [H2|T2], P, Acc) :-
 scalar_product_acc_rec([], [], Acc, Acc).
 
 
-%fibonacci(++N,-FN), fibonacci_acc(++N,++Prev,++Acc,-FN)
-%fibonacci(N,FN), fibonacci_acc(N,Prev,Acc,FN) :-
+%fibonacci(++N,-FN), 
+fibonacci(0, 0) :- !.
+fibonacci(1, 1) :- !.
+  
 
+fibonacci(N,FN) :-
+  N1 is N-1,
+  N2 is N-2,
+  fibonacci(N1, FN1),
+  fibonacci(N2, FN2),
+  FN is FN1 + FN2.
+
+
+%fibonacci_acc(++N,++Prev,++Acc,-FN)
+fibonacci_acc(0, Result, _, Result) :- !.
+
+fibonacci_acc(N,Prev,Acc,FN) :-
+  NewAcc is Prev + Acc,
+  N1 is N-1,
+  fibonacci_acc(N1, Acc, NewAcc, FN).
+
+% Call this function as follows: fibonacci_acc(N, 0, 1, FN). Whereas N is an integer.
