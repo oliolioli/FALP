@@ -1,16 +1,12 @@
 %S09 - Exercise 1
 
-%scalar_product_rec(++L1,++L2,-P)
-scalar_product_rec([H1|T1], [H2|T2], P) :-
+%scalar_product(++L1,++L2,-P)
+scalar_product([H1|T1], [H2|T2], P) :-
   TemporaryResult is H1*H2,
-  scalar_product_rec(T1, T2, Result),
+  scalar_product(T1, T2, Result),
   P is TemporaryResult + Result.
 
-scalar_product_rec([],[],0).
-
-%scalar_product([1,2,3], [4,5,6], P).
-
-
+scalar_product([],[],0).
 
 %scalar_product_acc(++L1,++L2,-P)
 scalar_product_acc(L1,L2,P) :- 
@@ -23,5 +19,7 @@ scalar_product_acc_rec([H1|T1], [H2|T2], P, Acc) :-
 
 scalar_product_acc_rec([], [], Acc, Acc).
 
-%scalar_product_acc([1,2,3], [4,5,6], P).
-  
+
+%fibonacci(++N,-FN), fibonacci_acc(++N,++Prev,++Acc,-FN)
+%fibonacci(N,FN), fibonacci_acc(N,Prev,Acc,FN) :-
+
