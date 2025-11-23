@@ -36,9 +36,27 @@ fibonacci(N,FN) :-
 %fibonacci_acc(++N,++Prev,++Acc,-FN)
 fibonacci_acc(0, Result, _, Result) :- !.
 
-fibonacci_acc(N,Prev,Acc,FN) :-
+fibonacci_acc(N, Prev, Acc, FN) :-
   NewAcc is Prev + Acc,
   N1 is N-1,
   fibonacci_acc(N1, Acc, NewAcc, FN).
 
 % Call this function as follows: fibonacci_acc(N, 0, 1, FN). Whereas N is an integer.
+
+
+%count_occur(+X,+L,-N)
+count_occur(X, [Head|Tail], N) :-
+  count_occur(X, Tail, M),
+  ((Head == X) -> N is M+1; M = N).
+
+count_occur(_, [], 0).
+
+% Call this function as follows: count_occur(X, [a,b,c], N). Whereas X is the list item to be counted and [a,b,c] a list.
+
+%count_occur_acc(+X,+L,++Acc,-N)
+count_occur_acc(X, [Head|Tail], Acc ,N) :-
+  (Head == X -> NewAcc is Acc + 1; NewAcc is Acc),
+  count_occur_acc(X, Tail, NewAcc, N).
+
+count_occur_acc(_, [], Acc, Acc). 
+  
