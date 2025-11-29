@@ -31,4 +31,4 @@ expr_right([u]) --> [u].                                          % base case: l
 
 
 % The tests unfortunately demand another format and naming here as well.
-% Code was debugged and written with help of ChatGPT.
+% Code was debugged and written with help of ChatGPT, but just as a bystander.
