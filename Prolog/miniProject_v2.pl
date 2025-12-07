@@ -34,6 +34,16 @@ list_to_term_without_functor([X, Y|R], P) :-
   list_to_term_without_functor([Y|R], F),
   P =.. [',', X, F].
 
+% generate_rules(++Grammar): generates and asserts the clauses modeling the grammar
+generate_rules(Grammar) :-
+    grammar(Rules, Grammar, []),
+    maplist(assert_dcg_rule, Rules).
+
+% Helper predicate to expand and assert a single DCG rule
+assert_dcg_rule(DCGRule) :-
+    expand_term(DCGRule, Clauses),
+    maplist(assertz, Clauses).
+
 % Original helper predicates
 starts_with_r(Atom) :-
     atom(Atom),
